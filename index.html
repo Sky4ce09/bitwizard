@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="something, i guess">
+	<title>bitwizard web editor</title>
+</head>
+<body>
+	<textarea cols=50 rows=60 id="inputfield" placeholder="Input" oninput="document.getElementById(`outputfield`).value = tp(document.getElementById(`inputfield`).value)"></textarea>
+	<textarea cols=50 rows=60 readonly id="outputfield" placeholder="Output"></textarea>
+	<script src="transpile.js"></script>
+</body>
+</html>
