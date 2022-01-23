@@ -4,11 +4,164 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="something, i guess">
+	<link href="table.css" rel="stylesheet"></style>
 	<title>bitwizard web editor</title>
 </head>
-<body>
-	<textarea cols=50 rows=60 id="inputfield" placeholder="Input" oninput="document.getElementById(`outputfield`).value = tp(document.getElementById(`inputfield`).value)"></textarea>
-	<textarea cols=50 rows=60 readonly id="outputfield" placeholder="Output"></textarea>
+<body style="background-color: black">
+	<textarea style="background-color: black; color: white" cols=80 rows=60 id="inputfield" placeholder="Input" oninput="document.getElementById(`outputfield`).value = tp(document.getElementById(`inputfield`).value)"></textarea>
+	<textarea style="background-color: black; color: white" cols=80 rows=60 readonly id="outputfield" placeholder="Output"></textarea>
+	<section>
+		<h3 style="color: white; font-family: arial, sans-serif">bitwizard simplified bit manipulation & other tools for mindustry logic</h3>
+		<table><tbody style="color: white">
+			<tr>
+				<th>main op</th>
+				<th>sub op</th>
+				<th>parameters</th>
+				<th>purpose & details</th>
+				<th>example</th>
+			</tr>
+			<tr>
+				<td>timer</td>
+				<td>new</td>
+				<td>name, duration in ms</td>
+				<td>create and start a timer</td>
+				<td>timer start BakePretzelTimer 1200000</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>loop</td>
+				<td>name</td>
+				<td>determine the line of code a timer should jump to if it's not expired (the line below)</td>
+				<td>timer loop BakePretzelTimer<br/>op add becomeImpatient becomeImpatient 1</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>extend</td>
+				<td>name, duration in ms</td>
+				<td>extend a timer</td>
+				<td>timer extend BakePretzelTimer 60000</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>close</td>
+				<td></td>
+				<td>close the most recently created timer</td>
+				<td>timer start Wait2secs 2000<br/>timer loop Wait2secs<br/>timer close</td>
+			</tr>
+			<tr>
+				<td>spl</td>
+				<td>new</td>
+				<td>target variable name, reference name, bitcounts...</td>
+				<td>create a bit splitter for a variable</td>
+				<td>spl new bytes Bytes 8 8 8 8 8 8 #splits 'bytes' into 6 actual bytes</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>obtainf</td>
+				<td>output variable, splitter reference, constant bitcount index</td>
+				<td>get the range of bits of a splitter's target variable at a constant index</td>
+				<td>spl obtainf a Bytes 1 #gets the 2nd range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>obtainv</td>
+				<td>output variable, splitter reference, bitcount index</td>
+				<td>get the range of bits of a splitter's target variable at an index that may be determined in runtime<br/>this generates a lot more code than obtainf so don't use it when you don't need to define the bit range index in runtime</td>
+				<td>spl obtainv a Bytes x #gets the x-th range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>clearf</td>
+				<td>splitter reference, constant bitcount index</td>
+				<td>clear the range of bits of a splitter's target variable at a constant index</td>
+				<td>spl clearf Bytes 3 #clears the 4th range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>clearv</td>
+				<td>splitter reference, bitcount index</td>
+				<td>clear the range of bits of a splitter's target variable at an index that may be determined in runtime<br/>this generates a lot more code than clearf so don't use it when you don't need to define the bit range index in runtime</td>
+				<td>spl clearv Bytes x #clears the x-th range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>writef</td>
+				<td>input, splitter reference, constant bitcount index</td>
+				<td>write to the range of bits of a splitter's target variable at a constant index</td>
+				<td>spl writef 0b10100101 Bytes 3 #writes a number to the 4th range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>writev</td>
+				<td>input, splitter reference, bitcount index</td>
+				<td>write to the range of bits of a splitter's target variable at an index that may be determined in runtime<br/>this generates a lot more code than writef so don't use it when you don't need to define the bit range index in runtime</td>
+				<td>spl writev 0xFF Bytes x #writes a number to the x-th range of bits in 'Bytes'</td>
+			</tr>
+			<tr>
+				<td>fun</td>
+				<td>new</td>
+				<td>name</td>
+				<td>declare a new function</td>
+				<td>fun new ConstructingAdditionalPylons</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>close</td>
+				<td></td>
+				<td>close the most recently declared function</td>
+				<td>fun close</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>have</td>
+				<td>function name</td>
+				<td>have fun™ / call a function</td>
+				<td>fun have ConstructingAdditionalPylons</td>
+			</tr>
+			<tr>
+				<td>log2</td>
+				<td></td>
+				<td>output, input</td>
+				<td>get the base 2 logarithm of a number; automatically imports LN2 if necessary</td>
+				<td>log2 x 16</td>
+			</tr>
+			<tr>
+				<td>import</td>
+				<td>LN2</td>
+				<td></td>
+				<td>define a variable 'LN2' as the natural logarithm of 2 at the start of your code</td>
+				<td>import LN2<br/>print LN2<br/>printf message1 #gimme ln2</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>LN16</td>
+				<td></td>
+				<td>define a variable 'LN16' as the natural logarithm of 16 at the start of your code</td>
+				<td>import LN16</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>PI</td>
+				<td></td>
+				<td>define a variable 'PI' as a 16-digit approximate of pi at the start of your code</td>
+				<td>import PI</td>
+			</tr>
+			<tr>
+				<td>countsw</td>
+				<td></td>
+				<td>constant case count, value</td>
+				<td>create a counter switch (note that these pile to a lot of instructions)</td>
+				<td>countsw 8 a</td>
+			</tr>
+			<tr>
+				<td>/</td>
+				<td></td>
+				<td></td>
+				<td>close one case of a counter switch</td>
+				<td>countsw 2 fruit<br/>set x "apple"<br/>/<br/>set x "orange"<br/>/</td>
+			</tr>
+		</tbody></table>
+	</section>
 	<script src="transpile.js"></script>
 </body>
 </html>
