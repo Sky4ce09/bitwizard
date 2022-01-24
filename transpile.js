@@ -11,12 +11,16 @@ let wf = (n) => {
   return l.substring(p1, p2);
 };
 function tp(inp) {
+  try {
+    return f(inp);
+  } catch (e) {}
+}
+function f(inp) {
   dividercount = 0;
   map1 = new Map();
-  map1.set("recentFun", []);
-  map1.set("recentTimer", []);
-  map1.set("recentCS", []);
-  map1.set("allocations", []);
+  map1.set("recentFunInternal", []);
+  map1.set("recentTimerInternal", []);
+  map1.set("recentCSInternal", []);
   newstrarr = [];
   hasImported = 0;
   let i = 0;
@@ -52,7 +56,7 @@ function tp(inp) {
         //use in conjunction with 'timer loop' and 'timer close'
         //starts a timer
         case "new":
-          map1.get("recentTimer").push(wf(1));
+          map1.get("recentTimerInternal").push(wf(1));
           map1.set(wf(1), wf(2));
           l = "op add " + wf(1) + " @time " + wf(2);
           break;
@@ -71,10 +75,14 @@ function tp(inp) {
         case "close":
           l =
             "jump " +
-            map1.get("recentTimer")[map1.get("recentTimer").length - 1] +
+            map1.get("recentTimerInternal")[
+              map1.get("recentTimerInternal").length - 1
+            ] +
             "_TIMER lessThan @time " +
-            map1.get("recentTimer")[map1.get("recentTimer").length - 1];
-          map1.get("recentTimer").pop();
+            map1.get("recentTimerInternal")[
+              map1.get("recentTimerInternal").length - 1
+            ];
+          map1.get("recentTimerInternal").pop();
       }
     } else if (l.indexOf("spl") == 0) {
       let v;
@@ -101,6 +109,7 @@ function tp(inp) {
         //'spl obtainf' expects parameters VARNAME, SPLIT NAME and (CONSTANT) INDEX
         //"split obtain fast"
         case "obtainf":
+        case "of":
           v = wf(1);
           spl = map1.get(wf(2));
           slot = wf(3);
@@ -111,7 +120,11 @@ function tp(inp) {
 
           //bitwise and setup
 
-          final = (Math.pow(2, map1.get(spl)[slot * 1]) - 1) << skip;
+          console.log(
+            BigInt(2 ** map1.get(spl)[slot * 1] - 1),
+            BigInt(2 ** map1.get(spl)[slot * 1] - 1) << BigInt(skip)
+          );
+          final = BigInt(2 ** map1.get(spl)[slot * 1] - 1) << BigInt(skip);
 
           l = "op and " + v + " " + spl + " " + final;
           if (skip != 0) {
@@ -121,12 +134,16 @@ function tp(inp) {
         //'spl obtainv' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
         //"split obtain variable"
         case "obtainv":
+        case "ov":
           v = wf(1);
           spl = map1.get(wf(2));
           slot = wf(3);
           des = dividercount;
 
-          l = "op mul _Internal_ " + slot + " 3\nop add @counter @counter _Internal_\n";
+          l =
+            "op mul _Internal_ " +
+            slot +
+            " 3\nop add @counter @counter _Internal_\n";
           for (let y = 0; y < map1.get(spl).length - 1; y++) {
             l +=
               "op and " +
@@ -134,7 +151,7 @@ function tp(inp) {
               " " +
               spl +
               " " +
-              ((Math.pow(2, map1.get(spl)[y]) - 1) << skip) +
+              (BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip)) +
               "\nop shr " +
               v +
               " " +
@@ -152,6 +169,7 @@ function tp(inp) {
         //'spl clearf' expects parameters SPLIT NAME and (CONSTANT) INDEX
         //"split clear fast"
         case "clearf":
+        case "cf":
           spl = map1.get(wf(1));
           slot = wf(2);
 
@@ -161,18 +179,24 @@ function tp(inp) {
 
           //bitwise and setup
 
-          final = ~((Math.pow(2, map1.get(spl)[slot * 1]) - 1) << skip);
+          final = ~(
+            BigInt(Math.pow(2, map1.get(spl)[slot * 1]) - 1) << BigInt(skip)
+          );
 
           l = "op and " + spl + " " + spl + " " + final;
           break;
         //'spl clearv' expects parameters SPLIT NAME and (VARIABLE) INDEX
         //"split write variable"
         case "clearv":
+        case "cv":
           spl = map1.get(wf(1));
           slot = wf(2);
           des = dividercount;
 
-          l = "op mul _Internal_ " + slot + " 2\nop add @counter @counter _Internal_\n";
+          l =
+            "op mul _Internal_ " +
+            slot +
+            " 2\nop add @counter @counter _Internal_\n";
 
           for (let y = 0; y < map1.get(spl).length - 1; y++) {
             l +=
@@ -181,7 +205,7 @@ function tp(inp) {
               " " +
               spl +
               " " +
-              ~((Math.pow(2, map1.get(spl)[y]) - 1) << skip);
+              ~(BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip));
             if (y != map1.get(spl).length - 2) {
               l += "\njump _DESTINATION" + des + "_ always\n";
             }
@@ -193,6 +217,7 @@ function tp(inp) {
         //'spl writef' expects parameters VALUE, SPLIT NAME and (CONSTANT) INDEX
         //"split write fast"
         case "writef":
+        case "wf":
           v = wf(1);
           spl = map1.get(wf(2));
           slot = wf(3);
@@ -201,8 +226,9 @@ function tp(inp) {
             skip = skip + map1.get(spl)[i] * 1;
           }
 
-          final = ~((Math.pow(2, map1.get(spl)[slot * 1]) - 1) << skip);
-          add = v << skip;
+          final = ~(
+            BigInt(Math.pow(2, map1.get(spl)[slot * 1]) - 1) << BigInt(skip)
+          );
 
           l =
             "op and " +
@@ -211,22 +237,29 @@ function tp(inp) {
             spl +
             " " +
             final +
+            "\nop shl _Internal_ " +
+            v +
+            " " +
+            skip +
             "\nop add " +
             spl +
             " " +
             spl +
-            " " +
-            add;
+            " _Internal_";
           break;
         //'spl writev' expects parameters VALUE, SPLIT NAME and (VARIABLE) INDEX
         //"split write variable"
         case "writev":
+        case "wv":
           v = wf(1);
           spl = map1.get(wf(2));
           slot = wf(3);
           des = dividercount;
 
-          l = "op mul _Internal_ " + slot + " 4\nop add @counter @counter _Internal_\n";
+          l =
+            "op mul _Internal_ " +
+            slot +
+            " 4\nop add @counter @counter _Internal_\n";
 
           for (let y = 0; y < map1.get(spl).length - 1; y++) {
             l +=
@@ -235,7 +268,7 @@ function tp(inp) {
               " " +
               spl +
               " " +
-              ~((Math.pow(2, map1.get(spl)[y]) - 1) << skip) +
+              ~(BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip)) +
               "\nop shl _Internal_ " +
               v +
               " " +
@@ -262,19 +295,19 @@ function tp(inp) {
           //function without a name
           throw "Can't have unannounced fun. Invite me to the party already!!";
         }
-        map1.get("recentFun").push(wf(1));
+        map1.get("recentFunInternal").push(wf(1));
         map1.set(wf(1), dividercount - 1);
         l = "jump " + wf(1) + "BRIDGE always\n" + wf(1) + ":";
         //'fun close' expects no parameters
       } else if (l.indexOf("close") == 4) {
-        let p = map1.get("recentFun");
+        let p = map1.get("recentFunInternal");
         l =
           "set @counter " +
           p[p.length - 1] +
           "_CALLBACK\n" +
           p[p.length - 1] +
           "BRIDGE:";
-        map1.get("recentFun").pop();
+        map1.get("recentFunInternal").pop();
         //Have fun!
         //'fun have' expects parameter FUNCTION NAME
       } else if (l.indexOf("have") == 4) {
@@ -325,22 +358,24 @@ function tp(inp) {
           break;
       }
       l = "";
-      //'countswitch' expects parameters (CONSTANT) CASECOUNT and VALUE
+      //'countsw' expects parameters (CONSTANT) CASECOUNT and VALUE
       //never forget to close your cases
-    } else if (l.indexOf("countswitch") == 0) {
+    } else if (l.indexOf("countsw") == 0) {
       let cases = wf(0) * 1;
       let des = dividercount;
       l = "op add @counter @counter " + wf(1) + "\n";
       for (let i = 0; i < cases; i++) {
         l += "jump " + des + "_d" + i + " always\n";
       }
-      map1.get("recentCS").push([cases, 1, des]);
+      map1.get("recentCSInternal").push([cases, 1, des]);
       l += des + "_d0:";
       dividercount++;
       //'/' expects no parameters
       //closes a case
     } else if (l.indexOf("/") == 0) {
-      let h = map1.get("recentCS")[map1.get("recentCS").length - 1];
+      let h = map1.get("recentCSInternal")[
+        map1.get("recentCSInternal").length - 1
+      ];
       if (h[0] > h[1]) {
         l =
           "jump _DESTINATION" + h[2] + "_ always\n" + h[2] + "_d" + h[1] + ":";
@@ -349,6 +384,10 @@ function tp(inp) {
         l = "_DESTINATION" + h[2] + "_:\n";
         map1.delete(h);
       }
+    } else if (l.indexOf("printf ") == 0 || l.indexOf("pf ") == 0) {
+      l = "printflush " + wf(0);
+    } else if (l.indexOf("drawf ") == 0 || l.indexOf("df ") == 0) {
+      l = "drawflush " + wf(0);
     }
     newstrarr[j] = l;
   }
