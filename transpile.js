@@ -318,7 +318,8 @@ function f(inp) {
           case "new":
             if (l.length == 2) {
               //function without a name
-              return "Can't have unannounced fun. Invite me to the party already!\n(function without a name)";
+              l = "#Give your function a good name...";
+              break;
             }
             map1.get("recentFunInternal").push(l[2]);
             map1.set(l[2], dividercount - 1);
@@ -339,6 +340,11 @@ function f(inp) {
           //'fun have' expects parameter FUNCTION NAME
           case "have":
           case "call":
+            if (l.length == 2) {
+              //function without a name
+              l = "#Can't have unannounced fun. Invite me to the party already!\n#(no function name provided)";
+              break;
+            }
             l =
               "op add " +
               l[2] +
