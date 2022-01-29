@@ -374,6 +374,7 @@ function f(inp) {
 
       //'import' expects any of the below cases as parameter
       case "import":
+      case "imp":
         hasImported = 1;
         switch (l[1]) {
           case "LN2":
@@ -441,6 +442,11 @@ function f(inp) {
       case "drawf":
       case "df":
         l = "drawflush " + l[1];
+        break;
+        
+      case "jmp":
+      case "j":
+        l = "jump " + parseRest(l, 1);
         break;
     }
     if (typeof l == "object") {
