@@ -66,6 +66,14 @@ function f(inp) {
   for (let j = 0; j < newstrarr.length; j++) {
     l = prepareLine(newstrarr[j]);
     //'VALUE' also works with variables
+    
+      let v;
+      let spl;
+      let slot;
+      let skip = 0;
+      let final;
+      let des = 0;
+      let add;
 
     switch (l[0]) {
       //'terminate' makes the processor stuck until disabled (i think?)
@@ -111,13 +119,6 @@ function f(inp) {
         break;
 
       case "spl":
-        let v;
-        let spl;
-        let slot;
-        let skip = 0;
-        let final;
-        let des;
-        let add;
         switch (l[1]) {
           //'spl new' expects parameters VARNAME, NEW SPLIT NAME and ADDITIONAL PARAMETERS listed here
           //bitcount of natural number 1, bitcount 2, bitcount 3...
@@ -414,7 +415,7 @@ function f(inp) {
           l += "jump " + des + "_d" + i + " always\n";
         }
         map1.get("recentCSInternal").push([cases, 1, des]);
-        l += des + "_d0:";
+        l += des + "_d0:\n";
         dividercount++;
         break;
 
@@ -436,7 +437,7 @@ function f(inp) {
           h[1] = h[1] + 1;
         } else {
           l = "_DESTINATION" + h[2] + "_:\n";
-          map1.delete(h);
+          map1.get("recentCSInternal").pop();
         }
         break;
 
