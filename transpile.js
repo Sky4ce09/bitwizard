@@ -48,7 +48,7 @@ function f(inp) {
   map1 = new Map();
   map1.set("recentFunInternal", []);
   map1.set("recentTimerInternal", []);
-  map1.set("recentCSInternal", []);
+  map1.set("recentPAInternal", []);
   newstrarr = [];
   hasImported = 0;
   let i = 0;
@@ -403,18 +403,18 @@ function f(inp) {
         l = "";
         break;
 
-      //'countsw' expects parameters (CONSTANT) CASECOUNT and VALUE
+      //'parray' expects parameters (CONSTANT) POINTERCOUNT and VALUE
       //never forget to close your cases
-      case "countswitch":
-      case "countsw":
-      case "csw":
+      case "pointarray":
+      case "parray":
+      case "parr":
         let cases = l[1] * 1;
         des = dividercount;
         l = "op add @counter @counter " + l[2] + "\n";
         for (let i = 0; i < cases; i++) {
           l += "jump " + des + "_d" + i + " always\n";
         }
-        map1.get("recentCSInternal").push([cases, 1, des]);
+        map1.get("recentPAInternal").push([cases, 1, des]);
         l += des + "_d0:\n";
         dividercount++;
         break;
@@ -422,8 +422,8 @@ function f(inp) {
       //'/' expects no parameters
       //closes a case
       case "/":
-        let h = map1.get("recentCSInternal")[
-          map1.get("recentCSInternal").length - 1
+        let h = map1.get("recentPAInternal")[
+          map1.get("recentPAInternal").length - 1
         ];
         if (h[0] > h[1]) {
           l =
@@ -437,7 +437,7 @@ function f(inp) {
           h[1] = h[1] + 1;
         } else {
           l = "_DESTINATION" + h[2] + "_:\n";
-          map1.get("recentCSInternal").pop();
+          map1.get("recentPAInternal").pop();
         }
         break;
 
