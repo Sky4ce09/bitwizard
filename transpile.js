@@ -4,6 +4,7 @@ let newstrarr;
 let map1;
 let dividercount;
 let hasImported;
+let loopcount;
 function tp(inp) {
   try {
     return f(inp);
@@ -45,10 +46,12 @@ function parseRest(input, startIndex) {
 }
 function f(inp) {
   dividercount = 0;
+  loopcount = 0;
   map1 = new Map();
   map1.set("recentFunInternal", []);
   map1.set("recentTimerInternal", []);
   map1.set("recentPAInternal", []);
+  map1.set("recentForInternal", []);
   newstrarr = [];
   hasImported = 0;
   let i = 0;
@@ -66,14 +69,14 @@ function f(inp) {
   for (let j = 0; j < newstrarr.length; j++) {
     l = prepareLine(newstrarr[j]);
     //'VALUE' also works with variables
-    
-      let v;
-      let spl;
-      let slot;
-      let skip = 0;
-      let final;
-      let des = 0;
-      let add;
+
+    let v;
+    let spl;
+    let slot;
+    let skip = 0;
+    let final;
+    let des = 0;
+    let add;
 
     switch (l[0]) {
       //'terminate' makes the processor stuck until disabled (i think?)
@@ -343,7 +346,8 @@ function f(inp) {
           case "call":
             if (l.length == 2) {
               //function without a name
-              l = "#Can't have unannounced fun. Invite me to the party already!\n#(no function name provided)";
+              l =
+                "#Can't have unannounced fun. Invite me to the party already!\n#(no function name provided)";
               break;
             }
             l =
@@ -450,11 +454,78 @@ function f(inp) {
       case "df":
         l = "drawflush " + l[1];
         break;
-        
+
       case "jmp":
       case "j":
         l = "jump " + parseRest(l, 1);
         break;
+      case "for":
+        let summand;
+        let condition;
+        let variable;
+        let setTo;
+        let rightside;
+        let m;
+        let id;
+        if (l[1] == "close") {
+          m = map1.get("recentForInternal").pop();
+          variable = m[1];
+          condition = l[2];
+          rightside = l[3];
+          summand = l[4];
+          id = m[0];
+          //condition dictionary
+          switch (condition) {
+            case "==":
+              condition = "equal";
+              break;
+            case "!=":
+            case "not":
+              condition = "notEqual";
+              break;
+            case ">=":
+              condition = "greaterThanEqual";
+              break;
+            case "<=":
+              condition = "lessThanEqual";
+              break;
+            case ">":
+              condition = "greaterThan";
+              break;
+            case "<":
+              condition = "lessThan";
+              break;
+            case "===":
+              condition = "strictEqual";
+              break;
+          }
+          l =
+            `op add ${variable} ${variable} ${summand}` +
+            "\n" +
+            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}`;
+          break;
+        } else {
+          let l2;
+          if (l.length == 1 || (l.length == 2 && l[1] == "")) {
+            l = "#mind giving me some more parameters? i'm hungry"
+            break;
+          }
+          if (l[2] != "=" && l.length > 2) {
+            l = "#the second parameter better be a '=' or else"
+            break;
+          }
+          variable = l[1];
+          setTo = l[3];
+          map1
+            .get("recentForInternal")
+            .push([loopcount, variable]);
+          l2 = "_FORLOOP" + loopcount + "_:";
+          if (variable != setTo && l.length >= 4) {
+            l2 = "set " + variable + " " + setTo + "\n" + l2;
+          }
+          l = l2;
+          loopcount++;
+        }
     }
     if (typeof l == "object") {
       let outl = l[0];
