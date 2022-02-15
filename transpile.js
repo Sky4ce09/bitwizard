@@ -467,7 +467,7 @@ function f(inp) {
         let rightside;
         let m;
         let id;
-        if (l[1] == "close") {
+        if (l[1] == "close" && l[2] != "=") {
           m = map1.get("recentForInternal").pop();
           variable = m[1];
           condition = l[2];
