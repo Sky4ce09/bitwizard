@@ -484,10 +484,10 @@ function f(inp) {
               condition = "notEqual";
               break;
             case ">=":
-              condition = "greaterThanEqual";
+              condition = "greaterThanEq";
               break;
             case "<=":
-              condition = "lessThanEqual";
+              condition = "lessThanEq";
               break;
             case ">":
               condition = "greaterThan";
