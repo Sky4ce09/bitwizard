@@ -170,7 +170,7 @@ function f(inp) {
               "op mul _Internal_ " +
               slot +
               " 3\nop add @counter @counter _Internal_\n";
-            for (let y = 0; y < map1.get(spl).length - 1; y++) {
+            for (let y = 0; y < map1.get(spl).length; y++) {
               l +=
                 "op and " +
                 v +
@@ -184,7 +184,7 @@ function f(inp) {
                 v +
                 " " +
                 skip;
-              if (y != map1.get(spl).length - 2) {
+              if (y != map1.get(spl).length - 1) {
                 l += "\njump _DESTINATION" + des + "_ always\n";
               }
               skip += map1.get(spl)[y] * 1;
@@ -224,7 +224,7 @@ function f(inp) {
               slot +
               " 2\nop add @counter @counter _Internal_\n";
 
-            for (let y = 0; y < map1.get(spl).length - 1; y++) {
+            for (let y = 0; y < map1.get(spl).length; y++) {
               l +=
                 "op and " +
                 spl +
@@ -232,7 +232,7 @@ function f(inp) {
                 spl +
                 " " +
                 ~(BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip));
-              if (y != map1.get(spl).length - 2) {
+              if (y != map1.get(spl).length - 1) {
                 l += "\njump _DESTINATION" + des + "_ always\n";
               }
               skip += map1.get(spl)[y] * 1;
@@ -287,7 +287,7 @@ function f(inp) {
               slot +
               " 4\nop add @counter @counter _Internal_\n";
 
-            for (let y = 0; y < map1.get(spl).length - 1; y++) {
+            for (let y = 0; y < map1.get(spl).length; y++) {
               l +=
                 "op and " +
                 spl +
@@ -304,7 +304,7 @@ function f(inp) {
                 " " +
                 spl +
                 " _Internal_\n";
-              if (y != map1.get(spl).length - 2) {
+              if (y != map1.get(spl).length - 1) {
                 l += "jump _DESTINATION" + des + "_ always\n";
               }
               skip += map1.get(spl)[y] * 1;
