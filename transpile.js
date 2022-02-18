@@ -469,41 +469,25 @@ function f(inp) {
           let m;
           let id;
           let l2;
-          if (l.length == 1 || (l.length == 2 && l[1] == "")) {
+          let l3;
+          if (
+            l.length <= 4 + 2 * (l[2] == "=") ||
+            l.length <= (5 + 2 * (l[2] == "=") && l[4] == "")
+          ) {
             l = "#mind giving me some more parameters? i'm hungry";
             break;
           }
-          if (l[2] != "=" && l.length > 2) {
-            l = "#the second parameter better be a '=' or else";
-            break;
-          }
           variable = l[1];
-          setTo = l[3];
-          map1.get("recentForInternal").push([loopcount, variable]);
-          l2 = "_FORLOOP" + loopcount + "_:";
-          if (variable != setTo && l.length >= 4) {
-            l2 = "set " + variable + " " + setTo + "\n" + l2;
+          if (l[2] == "=") {
+            setTo = l[3];
+            condition = l[4];
+            rightside = l[5];
+            summand = l[6];
+          } else {
+            condition = l[2];
+            rightside = l[3];
+            summand = l[4];
           }
-          l = l2;
-          loopcount++;
-        }
-        break;
-      case "next":
-        if (true) {
-          let summand;
-          let condition;
-          let variable;
-          let setTo;
-          let rightside;
-          let m;
-          let id;
-          let l2;
-          m = map1.get("recentForInternal").pop();
-          variable = m[1];
-          condition = l[1];
-          rightside = l[2];
-          summand = l[3];
-          id = m[0];
           if (summand == "0") {
             l = `#absolutely not!`;
             break;
@@ -533,10 +517,55 @@ function f(inp) {
               condition = "strictEqual";
               break;
           }
+          map1.get("recentForInternal").push([loopcount, variable, summand, condition, rightside]);
+          l2 = "_FORLOOP" + loopcount + "_:\n";
+          l3 = "set " + variable + " " + setTo + "\n";
+          if (variable != setTo && l.length >= 6) {
+            l = l3 + "jump _ENDLOOP" +
+            loopcount +
+            "_ " +
+            condition +
+            " " +
+            variable +
+            " " +
+            rightside +
+            "\n" + l2;
+          } else {
+            l = "jump _ENDLOOP" +
+            loopcount +
+            "_ " +
+            condition +
+            " " +
+            variable +
+            " " +
+            rightside +
+            "\n" + l2;
+          }
+          loopcount++;
+        }
+        break;
+      case "next":
+        if (true) {
+          let variable;
+          let condition;
+          let rightside;
+          let m;
+          let id;
+          let l2;
+          let summand;
+          m = map1.get("recentForInternal").pop();
+          id = m[0];
+          variable = m[1];
+          summand = m[2];
+          condition = m[3];
+          rightside = m[4];
           l =
             `op add ${variable} ${variable} ${summand}` +
             "\n" +
-            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}`;
+            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
+            "\n" +
+            `_ENDLOOP${id}_:` +
+            "\n";
         }
         break;
     }
