@@ -463,6 +463,8 @@ function f(inp) {
         if (true) {
           let summand;
           let condition;
+          let oppositeCondition;
+          let warn = 0;
           let variable;
           let setTo;
           let rightside;
@@ -496,52 +498,85 @@ function f(inp) {
           switch (condition) {
             case "==":
               condition = "equal";
+              oppositeCondition = "notEqual";
               break;
             case "!=":
             case "not":
               condition = "notEqual";
+              oppositeCondition = "equal";
               break;
             case ">=":
               condition = "greaterThanEq";
+              oppositeCondition = "lessThan";
               break;
             case "<=":
               condition = "lessThanEq";
+              oppositeCondition = "greaterThan";
               break;
             case ">":
               condition = "greaterThan";
+              oppositeCondition = "lessThanEq";
               break;
             case "<":
               condition = "lessThan";
+              oppositeCondition = "greaterThanEq";
               break;
             case "===":
               condition = "strictEqual";
+              warn = 1;
               break;
           }
-          map1.get("recentForInternal").push([loopcount, variable, summand, condition, rightside]);
+          map1
+            .get("recentForInternal")
+            .push([loopcount, variable, summand, condition, rightside]);
           l2 = "_FORLOOP" + loopcount + "_:\n";
           l3 = "set " + variable + " " + setTo + "\n";
-          if (variable != setTo && l.length >= 6) {
-            l = l3 + "jump _ENDLOOP" +
-            loopcount +
-            "_ " +
-            condition +
-            " " +
-            variable +
-            " " +
-            rightside +
-            "\n" + l2;
+          if (warn) {
+            if (variable != setTo && l.length >= 6) {
+              l =
+                l3 +
+                `op strictEqual _Internal_ ${variable} ${rightside}\n` +
+                "jump _ENDLOOP" +
+                loopcount +
+                "_ notEqual _Internal_ 1\n" +
+                l2;
+            } else {
+              l =
+                `op strictEqual _Internal_ ${variable} ${rightside}\n` +
+                "jump _ENDLOOP" +
+                loopcount +
+                "_ notEqual _Internal_ 1\n" +
+                l2;
+            }
           } else {
-            l = "jump _ENDLOOP" +
-            loopcount +
-            "_ " +
-            condition +
-            " " +
-            variable +
-            " " +
-            rightside +
-            "\n" + l2;
+            if (variable != setTo && l.length >= 6) {
+              l =
+                l3 +
+                "jump _ENDLOOP" +
+                loopcount +
+                "_ " +
+                oppositeCondition +
+                " " +
+                variable +
+                " " +
+                rightside +
+                "\n" +
+                l2;
+            } else {
+              l =
+                "jump _ENDLOOP" +
+                loopcount +
+                "_ " +
+                oppositeCondition +
+                " " +
+                variable +
+                " " +
+                rightside +
+                "\n" +
+                l2;
+            }
+            loopcount++;
           }
-          loopcount++;
         }
         break;
       case "next":
