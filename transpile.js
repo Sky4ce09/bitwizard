@@ -472,13 +472,6 @@ function f(inp) {
           let id;
           let l2;
           let l3;
-          if (
-            l.length <= 4 + 2 * (l[2] == "=") ||
-            l.length <= (5 + 2 * (l[2] == "=") && l[4] == "")
-          ) {
-            l = "#mind giving me some more parameters? i'm hungry";
-            break;
-          }
           variable = l[1];
           if (l[2] == "=") {
             setTo = l[3];
@@ -489,10 +482,6 @@ function f(inp) {
             condition = l[2];
             rightside = l[3];
             summand = l[4];
-          }
-          if (summand == "0") {
-            l = `#absolutely not!`;
-            break;
           }
           //condition dictionary
           switch (condition) {
@@ -528,7 +517,7 @@ function f(inp) {
           }
           map1
             .get("recentForInternal")
-            .push([loopcount, variable, summand, condition, rightside]);
+            .push([loopcount, variable, summand, condition, rightside, l.length - 2 * (l[2] == "=")]);
           l2 = "_FORLOOP" + loopcount + "_:\n";
           l3 = "set " + variable + " " + setTo + "\n";
           if (warn) {
@@ -594,13 +583,22 @@ function f(inp) {
           summand = m[2];
           condition = m[3];
           rightside = m[4];
-          l =
+          let lineLen = m[5];
+          if (lineLen >= 5) {
+            l =
             `op add ${variable} ${variable} ${summand}` +
             "\n" +
             `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
             "\n" +
             `_ENDLOOP${id}_:` +
             "\n";
+          } else {
+            l =
+            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
+            "\n" +
+            `_ENDLOOP${id}_:` +
+            "\n";
+          }
         }
         break;
     }
