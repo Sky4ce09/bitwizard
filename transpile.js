@@ -12,7 +12,7 @@ function tp(inp) {
   try {
     return f(inp);
   } catch (e) {
-    return "Transpilation error at line " + maxLine;
+    return "Transpilation error at line " + maxLine + " (JavaScript: " + e + ")";
   }
 }
 function prepareLine(input) {
