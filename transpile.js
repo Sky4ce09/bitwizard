@@ -82,6 +82,7 @@ function f(inp) {
     let final;
     let des = 0;
     let add;
+    let bits = [];
 
     switch (l[0]) {
       //'terminate' makes the processor stuck until disabled (i think?)
@@ -130,14 +131,13 @@ function f(inp) {
         switch (l[1]) {
           //'spl new' expects parameters VARNAME, NEW SPLIT NAME and ADDITIONAL PARAMETERS listed here
           //bitcount of natural number 1, bitcount 2, bitcount 3...
-          //if you're out of ideas for the split name, try PascalCase on the varname and just use that
-          //splits need names, that way you can assign multiple splits to one variable
+          //if you're out of ideas for the splitter name, try PascalCase on the varname and just use that
+          //splitters need names because you can assign multiple splitters to one variable
           case "new":
             v = l[2];
-            map1.set(v, []);
-            map1.set(l[3], v);
+            map1.set(l[3], [v, []]);
             for (let i = 4; i < l.length; i++) {
-              map1.get(v).push(l[i]);
+              map1.get(l[3])[1].push(l[i]);
             }
             l = "";
             break;
@@ -146,16 +146,17 @@ function f(inp) {
           case "obtainf":
           case "of":
             v = l[2];
-            spl = map1.get(l[3]);
+            spl = map1.get(l[3])[0];
+            bits = map1.get(l[3])[1];
             slot = l[4];
 
             for (let i = 0; i < slot * 1; i++) {
-              skip = skip * 1 + map1.get(spl)[i] * 1;
+              skip = skip * 1 + bits[i] * 1;
             }
 
             //bitwise and setup
 
-            final = BigInt(2 ** map1.get(spl)[slot * 1] - 1) << BigInt(skip);
+            final = BigInt(2 ** bits[slot * 1] - 1) << BigInt(skip);
 
             l = "op and " + v + " " + spl + " " + final;
             if (skip != 0) {
@@ -167,7 +168,8 @@ function f(inp) {
           case "obtainv":
           case "ov":
             v = l[2];
-            spl = map1.get(l[3]);
+            spl = map1.get(l[3])[0];
+            bits = map1.get(l[3])[1];
             slot = l[4];
             des = dividercount;
 
@@ -175,24 +177,24 @@ function f(inp) {
               "op mul _Internal_ " +
               slot +
               " 3\nop add @counter @counter _Internal_\n";
-            for (let y = 0; y < map1.get(spl).length; y++) {
+            for (let y = 0; y < bits.length; y++) {
               l +=
                 "op and " +
                 v +
                 " " +
                 spl +
                 " " +
-                (BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip)) +
+                (BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
                 "\nop shr " +
                 v +
                 " " +
                 v +
                 " " +
                 skip;
-              if (y != map1.get(spl).length - 1) {
+              if (y != bits.length - 1) {
                 l += "\njump _DESTINATION" + des + "_ always\n";
               }
-              skip += map1.get(spl)[y] * 1;
+              skip += bits[y] * 1;
             }
             l += "\n_DESTINATION" + des + "_:";
             dividercount++;
@@ -201,17 +203,18 @@ function f(inp) {
           //"split clear fast"
           case "clearf":
           case "cf":
-            spl = map1.get(l[2]);
+            spl = map1.get(l[2])[0];
+            bits = map1.get(l[2])[1];
             slot = l[3];
 
             for (let i = 0; i < slot * 1; i++) {
-              skip = skip + map1.get(spl)[i] * 1;
+              skip = skip + bits[i] * 1;
             }
 
             //bitwise and setup
 
             final = ~(
-              BigInt(Math.pow(2, map1.get(spl)[slot * 1]) - 1) << BigInt(skip)
+              BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip)
             );
 
             l = "op and " + spl + " " + spl + " " + final;
@@ -220,7 +223,8 @@ function f(inp) {
           //"split write variable"
           case "clearv":
           case "cv":
-            spl = map1.get(l[2]);
+            spl = map1.get(l[2])[0];
+            bits = map1.get(l[2])[1];
             slot = l[3];
             des = dividercount;
 
@@ -229,18 +233,18 @@ function f(inp) {
               slot +
               " 2\nop add @counter @counter _Internal_\n";
 
-            for (let y = 0; y < map1.get(spl).length; y++) {
+            for (let y = 0; y < bits.length; y++) {
               l +=
                 "op and " +
                 spl +
                 " " +
                 spl +
                 " " +
-                ~(BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip));
-              if (y != map1.get(spl).length - 1) {
+                ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip));
+              if (y != bits.length - 1) {
                 l += "\njump _DESTINATION" + des + "_ always\n";
               }
-              skip += map1.get(spl)[y] * 1;
+              skip += bits[y] * 1;
             }
             l += "\n_DESTINATION" + des + "_:";
             dividercount++;
@@ -250,15 +254,16 @@ function f(inp) {
           case "writef":
           case "wf":
             v = l[2];
-            spl = map1.get(l[3]);
+            spl = map1.get(l[3])[0];
+            bits = map1.get(l[3])[1];
             slot = l[4];
 
             for (let i = 0; i < slot * 1; i++) {
-              skip = skip + map1.get(spl)[i] * 1;
+              skip = skip + bits[i] * 1;
             }
 
             final = ~(
-              BigInt(Math.pow(2, map1.get(spl)[slot * 1]) - 1) << BigInt(skip)
+              BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip)
             );
 
             l =
@@ -283,7 +288,8 @@ function f(inp) {
           case "writev":
           case "wv":
             v = l[2];
-            spl = map1.get(l[3]);
+            spl = map1.get(l[3])[0];
+            bits = map1.get(l[3])[1];
             slot = l[4];
             des = dividercount;
 
@@ -292,14 +298,14 @@ function f(inp) {
               slot +
               " 4\nop add @counter @counter _Internal_\n";
 
-            for (let y = 0; y < map1.get(spl).length; y++) {
+            for (let y = 0; y < bits.length; y++) {
               l +=
                 "op and " +
                 spl +
                 " " +
                 spl +
                 " " +
-                ~(BigInt(Math.pow(2, map1.get(spl)[y]) - 1) << BigInt(skip)) +
+                ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
                 "\nop shl _Internal_ " +
                 v +
                 " " +
@@ -309,10 +315,10 @@ function f(inp) {
                 " " +
                 spl +
                 " _Internal_\n";
-              if (y != map1.get(spl).length - 1) {
+              if (y != bits.length - 1) {
                 l += "jump _DESTINATION" + des + "_ always\n";
               }
-              skip += map1.get(spl)[y] * 1;
+              skip += bits[y] * 1;
             }
             l += "_DESTINATION" + des + "_:";
             dividercount++;
