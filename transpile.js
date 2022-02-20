@@ -5,10 +5,15 @@ let map1;
 let dividercount;
 let hasImported;
 let loopcount;
+let maxLine
+
 function tp(inp) {
+  maxLine = 0;
   try {
     return f(inp);
-  } catch (e) {}
+  } catch (e) {
+    return "Transpilation error at line " + maxLine;
+  }
 }
 function prepareLine(input) {
   let bf = input.split(" "); //buffered segments
@@ -611,6 +616,7 @@ function f(inp) {
     } else {
       newstrarr[j] = l;
     }
+    maxLine++
   }
   if (hasImported == 1) {
     outstr += "_PSTART_:\n";
