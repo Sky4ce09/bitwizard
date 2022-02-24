@@ -5,14 +5,16 @@ let map1;
 let dividercount;
 let hasImported;
 let loopcount;
-let maxLine
+let maxLine;
 
 function tp(inp) {
   maxLine = 0;
   try {
     return f(inp);
   } catch (e) {
-    return "Transpilation error at line " + maxLine + " (JavaScript: " + e + ")";
+    return (
+      "Transpilation error at line " + maxLine + " (JavaScript: " + e + ")"
+    );
   }
 }
 function prepareLine(input) {
@@ -156,12 +158,13 @@ function f(inp) {
 
             //bitwise and setup
 
-            final = BigInt(2 ** bits[slot * 1] - 1) << BigInt(skip);
+            final = BigInt(2 ** bits[slot * 1] - 1);
 
-            l = "op and " + v + " " + spl + " " + final;
+            l = "";
             if (skip != 0) {
-              l += "\nop shr " + v + " " + v + " " + skip;
+              l += "op shr " + v + " " + spl + " " + skip + "\n";
             }
+            l += "op and " + v + " " + v + " " + final+ "\n";
             break;
           //'spl obtainv' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
           //"split obtain variable"
@@ -179,18 +182,18 @@ function f(inp) {
               " 3\nop add @counter @counter _Internal_\n";
             for (let y = 0; y < bits.length; y++) {
               l +=
-                "op and " +
+                "op shr " +
                 v +
                 " " +
                 spl +
                 " " +
-                (BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
-                "\nop shr " +
+                skip +
+                "\nop and " +
                 v +
                 " " +
                 v +
                 " " +
-                skip;
+                BigInt(Math.pow(2, bits[y]) - 1);
               if (y != bits.length - 1) {
                 l += "\njump _DESTINATION" + des + "_ always\n";
               }
@@ -213,9 +216,7 @@ function f(inp) {
 
             //bitwise and setup
 
-            final = ~(
-              BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip)
-            );
+            final = ~(BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip));
 
             l = "op and " + spl + " " + spl + " " + final;
             break;
@@ -262,9 +263,7 @@ function f(inp) {
               skip = skip + bits[i] * 1;
             }
 
-            final = ~(
-              BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip)
-            );
+            final = ~(BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip));
 
             l =
               "op and " +
@@ -528,7 +527,14 @@ function f(inp) {
           }
           map1
             .get("recentForInternal")
-            .push([loopcount, variable, summand, condition, rightside, l.length - 2 * (l[2] == "=")]);
+            .push([
+              loopcount,
+              variable,
+              summand,
+              condition,
+              rightside,
+              l.length - 2 * (l[2] == "="),
+            ]);
           l2 = "_FORLOOP" + loopcount + "_:\n";
           l3 = "set " + variable + " " + setTo + "\n";
           if (warn) {
@@ -597,18 +603,18 @@ function f(inp) {
           let lineLen = m[5];
           if (lineLen >= 5) {
             l =
-            `op add ${variable} ${variable} ${summand}` +
-            "\n" +
-            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
-            "\n" +
-            `_ENDLOOP${id}_:` +
-            "\n";
+              `op add ${variable} ${variable} ${summand}` +
+              "\n" +
+              `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
+              "\n" +
+              `_ENDLOOP${id}_:` +
+              "\n";
           } else {
             l =
-            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
-            "\n" +
-            `_ENDLOOP${id}_:` +
-            "\n";
+              `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
+              "\n" +
+              `_ENDLOOP${id}_:` +
+              "\n";
           }
         }
         break;
@@ -622,7 +628,7 @@ function f(inp) {
     } else {
       newstrarr[j] = l;
     }
-    maxLine++
+    maxLine++;
   }
   if (hasImported == 1) {
     outstr += "_PSTART_:\n";
