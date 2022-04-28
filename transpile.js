@@ -18,6 +18,7 @@ function tp(inp) {
   }
 }
 function prepareLine(input) {
+  while (input[0] == " " || input[0] == "\t") {input = input.substring(1, input.length)};
   let bf = input.split(" "); //buffered segments
   let out = [];
   let pair = "";
