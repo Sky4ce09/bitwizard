@@ -198,7 +198,7 @@ function f(inp) {
 				}
                 l = `UFLAGGET${j}A:
 ubind ${utype}
-sensor _Internal_ @flag @unit
+sensor _Internal_ @unit @flag
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}${escapeConditions}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
@@ -222,9 +222,9 @@ UFLAGGET${j}B:`;
 				}
                 l = `UFLAGGET${j}A:
 ubind ${utype}
-sensor _Internal_ @flag @unit
+sensor _Internal_ @unit @flag
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
-sensor _Internal_ @controlled @unit
+sensor _Internal_ @unit @controlled
 jump UFLAGGET${j}B notEqual _Internal_ 0${escapeConditions}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
@@ -239,7 +239,7 @@ UFLAGGET${j}B:`;
               if (hasCond == 1) {
                 flag = l[3];
                 l = `UFLAGAWAIT${j}:
-sensor _Internal_ @flag @unit
+sensor _Internal_ @unit @flag
 jump UFLAGAWAIT${j} ${oppositeCondition} _Internal_ ${flag}`;
               } else {
                 flag = l[2];
