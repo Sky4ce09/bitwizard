@@ -7,6 +7,34 @@ let hasImported;
 let loopcount;
 let maxLine;
 
+function condLookup(inCond) {
+	switch (inCond) {
+		case "==":
+		case "equal":
+			return ["equal", "notEqual"];
+		case "===":
+			return ["strictEqual", "notEqual"];
+		case "!=":
+		case "not":
+		case "notEqual":
+			return ["notEqual", "equal"];
+		case ">":
+		case "greaterThan":
+			return ["greaterThan", "lessThanEq"];
+		case "<":
+		case "lessThan":
+			return ["lessThan", "greaterThanEq"];
+		case ">=":
+		case "greaterThanEq":
+			return ["greaterThanEq", "lessThan"];
+		case "<":
+		case "lessThanEq":
+			return ["lessThanEq", "greaterThan"];
+		default:
+			return ["equal", "notEqual"];
+	}
+}
+
 function tp(inp) {
   maxLine = 0;
   try {
@@ -144,70 +172,70 @@ function f(inp) {
           let add;
           switch (l[1]) {
             //'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
+			//also has optional tail parameter pairs ESCAPE CONDITION
+			
+			//ik this is confusing
+			
             //binds a unit of a given type that has a specific flag
             case "get":
               if (l[2] == "any") {
                 utype = l[3];
                 flag = l[4];
+				let escapeConditions = "\n";
+				if (l.length > 6) {
+					let condCount = 1;
+					for (let i = 8; i < l.length; i += 2) {
+						condCount++;
+					}
+					let p = 5;
+					for (let i = 0; i < condCount; i++) {
+						let innerCondition = condLookup(l[p])[0];
+						let rightSide = l[p + 1];
+						escapeConditions += "jump UFLAGGET" + j + "B " + innerCondition + " @unit " + rightSide + "\n";
+						p += 2;
+					}
+					escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1) //cut off the last newline
+				}
                 l = `UFLAGGET${j}A:
 ubind ${utype}
 sensor _Internal_ @flag @unit
-jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
+jump UFLAGGET${j}B strictEqual _Internal_ ${flag}${escapeConditions}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
-                break;
               } else {
                 utype = l[2];
                 flag = l[3];
+				let escapeConditions = "\n";
+				if (l.length > 5) {
+					let condCount = 1;
+					for (let i = 7; i < l.length; i += 2) {
+						condCount++;
+					}
+					let p = 4;
+					for (let i = 0; i < condCount; i++) {
+						let innerCondition = condLookup(l[p])[0];
+						let rightSide = l[p + 1];
+						escapeConditions += "jump UFLAGGET" + j + "B " + innerCondition + " @unit " + rightSide + "\n";
+						p += 2;
+					}
+					escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1) //cut off the last newline
+				}
                 l = `UFLAGGET${j}A:
 ubind ${utype}
 sensor _Internal_ @flag @unit
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
 sensor _Internal_ @controlled @unit
-jump UFLAGGET${j}B notEqual _Internal_ 0
+jump UFLAGGET${j}B notEqual _Internal_ 0${escapeConditions}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
-                break;
               }
+              break;
 
             //'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
             //waits for the bound unit to receive a flag
             case "await":
-              //condition dictionary
-              switch (l[2]) {
-                case "==":
-                case "===":
-                  condition = "equal";
-                  oppositeCondition = "notEqual";
-				  hasCond = 1;
-                  break;
-                case "!=":
-                case "not":
-                  condition = "notEqual";
-                  oppositeCondition = "equal";
-				  hasCond = 1;
-                  break;
-                case ">=":
-                  condition = "greaterThanEq";
-                  oppositeCondition = "lessThan";
-				  hasCond = 1;
-                  break;
-                case "<=":
-                  condition = "lessThanEq";
-                  oppositeCondition = "greaterThan";
-				  hasCond = 1;
-                  break;
-                case ">":
-                  condition = "greaterThan";
-                  oppositeCondition = "lessThanEq";
-				  hasCond = 1;
-                  break;
-                case "<":
-                  condition = "lessThan";
-                  oppositeCondition = "greaterThanEq";
-				  hasCond = 1;
-                  break;
-              }
+			  condition = condLookup(l[2])[0];
+			  oppositeCondition = condLookup(l[2])[1];
               if (hasCond == 1) {
                 flag = l[3];
                 l = `UFLAGAWAIT${j}:
