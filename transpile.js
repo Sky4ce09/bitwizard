@@ -138,18 +138,32 @@ function f(inp) {
 			let flag;
 			let add;
 			switch (l[1]) {
-				//'uflag get' expects parameters UNIT TYPE and FLAG
+				//'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
 				//binds a unit of a given type that has a specific flag
 				case "get":
-					utype = l[2];
-					flag = l[3];
-					l =`UFLAGGET${j}A:
+					if (l[2] == "any") {
+						utype = l[3];
+						flag = l[4];
+						l =`UFLAGGET${j}A:
 ubind ${utype}
 sensor _Internal_ @flag @unit
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
-					break;
+						break;
+					} else {
+						utype = l[2];
+						flag = l[3];
+						l =`UFLAGGET${j}A:
+ubind ${utype}
+sensor _Internal_ @flag @unit
+jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
+sensor _Internal_ @controlled @unit
+jump UFLAGGET${j}B notEqual _Internal_ 0
+jump UFLAGGET${j}A always
+UFLAGGET${j}B:`;
+						break;
+					}
 			
 				//'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
 				//waits for the bound unit to receive a flag
@@ -167,7 +181,7 @@ sensor _Internal_ @flag @unit
 jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
 					}
 					break;
-					
+				
 				//'uflag' expects a parameter FLAG
 				//flags bound unit
 				default:
