@@ -130,6 +130,55 @@ function f(inp) {
         }
         break;
 
+      //flag utils
+      case "uflag":
+		console.log(l);
+		if (true) {
+			let utype;
+			let flag;
+			let add;
+			switch (l[1]) {
+				//'uflag get' expects parameters UNIT TYPE and FLAG
+				//binds a unit of a given type that has a specific flag
+				case "get":
+					utype = l[2];
+					flag = l[3];
+					l =`UFLAGGET${j}A:
+ubind ${utype}
+sensor _Internal_ @flag @unit
+jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
+jump UFLAGGET${j}A always
+UFLAGGET${j}B:`;
+					break;
+			
+				//'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
+				//waits for the bound unit to receive a flag
+				case "await":
+					flag;
+					if (l[2] == "not") {
+						flag = l[3];
+						l =`UFLAGAWAIT${j}:
+sensor _Internal_ @flag @unit
+jump UFLAGAWAIT${j} equal _Internal_ ${flag}`;
+					} else {
+						flag = l[2];
+						l = `UFLAGAWAIT${j}:
+sensor _Internal_ @flag @unit
+jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
+					}
+					break;
+					
+				//'uflag' expects a parameter FLAG
+				//flags bound unit
+				default:
+					add = l[1];
+					console.log(l, l[1]);
+					l = "ucontrol flag " + add;
+					break;
+			}
+			break;
+		}
+
       case "spl":
         switch (l[1]) {
           //'spl new' expects parameters VARNAME, NEW SPLIT NAME and ADDITIONAL PARAMETERS listed here
