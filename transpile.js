@@ -18,7 +18,9 @@ function tp(inp) {
   }
 }
 function prepareLine(input) {
-  while (input[0] == " " || input[0] == "\t") {input = input.substring(1, input.length)};
+  while (input[0] == " " || input[0] == "\t") {
+    input = input.substring(1, input.length);
+  }
   let bf = input.split(" "); //buffered segments
   let out = [];
   let pair = "";
@@ -132,29 +134,32 @@ function f(inp) {
 
       //flag utils
       case "uflag":
-		console.log(l);
-		if (true) {
-			let utype;
-			let flag;
-			let add;
-			switch (l[1]) {
-				//'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
-				//binds a unit of a given type that has a specific flag
-				case "get":
-					if (l[2] == "any") {
-						utype = l[3];
-						flag = l[4];
-						l =`UFLAGGET${j}A:
+        console.log(l);
+        if (true) {
+		  let hasCond = 0;
+          let condition;
+          let oppositeCondition;
+          let utype;
+          let flag;
+          let add;
+          switch (l[1]) {
+            //'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
+            //binds a unit of a given type that has a specific flag
+            case "get":
+              if (l[2] == "any") {
+                utype = l[3];
+                flag = l[4];
+                l = `UFLAGGET${j}A:
 ubind ${utype}
 sensor _Internal_ @flag @unit
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
-						break;
-					} else {
-						utype = l[2];
-						flag = l[3];
-						l =`UFLAGGET${j}A:
+                break;
+              } else {
+                utype = l[2];
+                flag = l[3];
+                l = `UFLAGGET${j}A:
 ubind ${utype}
 sensor _Internal_ @flag @unit
 jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
@@ -162,36 +167,70 @@ sensor _Internal_ @controlled @unit
 jump UFLAGGET${j}B notEqual _Internal_ 0
 jump UFLAGGET${j}A always
 UFLAGGET${j}B:`;
-						break;
-					}
-			
-				//'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
-				//waits for the bound unit to receive a flag
-				case "await":
-					flag;
-					if (l[2] == "not") {
-						flag = l[3];
-						l =`UFLAGAWAIT${j}:
+                break;
+              }
+
+            //'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
+            //waits for the bound unit to receive a flag
+            case "await":
+              //condition dictionary
+              switch (l[2]) {
+                case "==":
+                case "===":
+                  condition = "equal";
+                  oppositeCondition = "notEqual";
+				  hasCond = 1;
+                  break;
+                case "!=":
+                case "not":
+                  condition = "notEqual";
+                  oppositeCondition = "equal";
+				  hasCond = 1;
+                  break;
+                case ">=":
+                  condition = "greaterThanEq";
+                  oppositeCondition = "lessThan";
+				  hasCond = 1;
+                  break;
+                case "<=":
+                  condition = "lessThanEq";
+                  oppositeCondition = "greaterThan";
+				  hasCond = 1;
+                  break;
+                case ">":
+                  condition = "greaterThan";
+                  oppositeCondition = "lessThanEq";
+				  hasCond = 1;
+                  break;
+                case "<":
+                  condition = "lessThan";
+                  oppositeCondition = "greaterThanEq";
+				  hasCond = 1;
+                  break;
+              }
+              if (hasCond == 1) {
+                flag = l[3];
+                l = `UFLAGAWAIT${j}:
 sensor _Internal_ @flag @unit
-jump UFLAGAWAIT${j} equal _Internal_ ${flag}`;
-					} else {
-						flag = l[2];
-						l = `UFLAGAWAIT${j}:
+jump UFLAGAWAIT${j} ${oppositeCondition} _Internal_ ${flag}`;
+              } else {
+                flag = l[2];
+                l = `UFLAGAWAIT${j}:
 sensor _Internal_ @flag @unit
 jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
-					}
-					break;
-				
-				//'uflag' expects a parameter FLAG
-				//flags bound unit
-				default:
-					add = l[1];
-					console.log(l, l[1]);
-					l = "ucontrol flag " + add;
-					break;
-			}
-			break;
-		}
+              }
+              break;
+
+            //'uflag' expects a parameter FLAG
+            //flags bound unit
+            default:
+              add = l[1];
+              console.log(l, l[1]);
+              l = "ucontrol flag " + add;
+              break;
+          }
+          break;
+        }
 
       case "spl":
         switch (l[1]) {
@@ -228,7 +267,7 @@ jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
             if (skip != 0) {
               l += "op shr " + v + " " + spl + " " + skip + "\n";
             }
-            l += "op and " + v + " " + v + " " + final+ "\n";
+            l += "op and " + v + " " + v + " " + final + "\n";
             break;
           //'spl obtainv' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
           //"split obtain variable"
