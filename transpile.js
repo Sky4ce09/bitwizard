@@ -168,6 +168,7 @@ function f(inp) {
           let oppositeCondition;
           let utype;
           let flag;
+		  let output;
           let add;
           switch (l[1]) {
             //'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
@@ -244,6 +245,24 @@ jump UFLAGAWAIT${j} ${oppositeCondition} _Internal_ ${flag}`;
                 l = `UFLAGAWAIT${j}:
 sensor _Internal_ @unit @flag
 jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
+              }
+              break;
+
+            //'uflag test' may expect a parameter CONDITION and expects parameters FLAG and OUTPUT
+            //tests @unit's flag
+            case "test":
+			  condition = condLookup(l[2])[0];
+			  oppositeCondition = condLookup(l[2])[1];
+              if (l.length > 4) {
+                flag = l[3];
+				output = l[4];
+                l = `sensor _Internal_ @unit @flag
+op ${condition} ${output} _Internal_ ${flag}`;
+              } else {
+                flag = l[2];
+				output = l[3];
+                l = `sensor _Internal_ @unit @flag
+op equal ${output} _Internal_ ${flag}`;
               }
               break;
 
