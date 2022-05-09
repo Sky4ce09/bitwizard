@@ -164,7 +164,6 @@ function f(inp) {
       case "uflag":
         console.log(l);
         if (true) {
-		  let hasCond = 0;
           let condition;
           let oppositeCondition;
           let utype;
@@ -222,11 +221,10 @@ UFLAGGET${j}B:`;
 				}
                 l = `UFLAGGET${j}A:
 ubind ${utype}
-sensor _Internal_ @unit @flag
-jump UFLAGGET${j}B strictEqual _Internal_ ${flag}
+sensor _Internal_ @unit @flag${escapeConditions}
+jump UFLAGGET${j}A notEqual _Internal_ ${flag}
 sensor _Internal_ @unit @controlled
-jump UFLAGGET${j}B notEqual _Internal_ 0${escapeConditions}
-jump UFLAGGET${j}A always
+jump UFLAGGET${j}A notEqual _Internal_ 0
 UFLAGGET${j}B:`;
               }
               break;
@@ -236,7 +234,7 @@ UFLAGGET${j}B:`;
             case "await":
 			  condition = condLookup(l[2])[0];
 			  oppositeCondition = condLookup(l[2])[1];
-              if (hasCond == 1) {
+              if (l.length > 3) {
                 flag = l[3];
                 l = `UFLAGAWAIT${j}:
 sensor _Internal_ @unit @flag
@@ -244,7 +242,7 @@ jump UFLAGAWAIT${j} ${oppositeCondition} _Internal_ ${flag}`;
               } else {
                 flag = l[2];
                 l = `UFLAGAWAIT${j}:
-sensor _Internal_ @flag @unit
+sensor _Internal_ @unit @flag
 jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
               }
               break;
@@ -294,8 +292,10 @@ jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
             l = "";
             if (skip != 0) {
               l += "op shr " + v + " " + spl + " " + skip + "\n";
-            }
-            l += "op and " + v + " " + v + " " + final + "\n";
+			  l += "op and " + v + " " + v + " " + final + "\n";
+            } else {
+			  l += "op and " + v + " " + spl + " " + final + "\n";
+			}
             break;
           //'spl obtainv' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
           //"split obtain variable"
