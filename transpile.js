@@ -573,9 +573,9 @@ op equal ${output} _Internal_ ${flag}`;
                 }
                 break;
 
-            //'import' expects any of the below cases as parameter
-            case "import":
-            case "imp":
+            //'define' expects any of the below cases as parameter
+            case "define":
+            case "def":
                 hasImported = 1;
                 switch (l[1]) {
                     case "LN2":
