@@ -82,6 +82,15 @@ function parseRest(input, startIndex) {
     }
     return out;
 }
+function testNumber(string) {
+    try {
+        let number = string * 1;
+        if (isNaN(number)) return false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 function f(inp) {
     dividercount = 0;
     loopcount = 0;
@@ -106,9 +115,10 @@ function f(inp) {
     newstrarr.push(inp.substring(i, j));
 
     let funs = [];
+    let lineConsistency = false;
     for (let j = 0; j < newstrarr.length; j++) {
         l = prepareLine(newstrarr[j]);
-        //'VALUE' also works with variables
+        //'VALUE' also works with variables !!UNLESS SPECIFIED OTHERWISE!!
 
         let v;
         let spl;
@@ -120,6 +130,20 @@ function f(inp) {
         let bits = [];
 
         switch (l[0]) {
+            //makes code segments read down the line consistent in terms of line count whereever applicable, but less optimized as a result
+            case "consistent":
+            case "con":
+                lineConsistency = true;
+                l = "#consistent line counts vvv";
+                break;
+
+            //makes code segments read down the line more optimized, but inconsistent in terms of line count (default)
+            case "inconsistent":
+            case "incon":
+                lineConsistency = false;
+                l = "#inconsistent line counts vvv";
+                break;
+
             //'terminate' makes the processor stuck until disabled (i think?)
             case "terminate":
                 l = "op add @counter @counter -1";
@@ -272,7 +296,7 @@ op equal ${output} _Internal_ ${flag}`;
                         case "verify":
                             for (let fun of funs) {
                                 if (fun === l[2]) {
-                                    l = "sensor _Internal1_ @unit @controlled\n" +
+                                    l = "sensor _Internal1_ @unit @controlled\n" + //i just cant be consistent with code formatting for strings
                                         "sensor _Internal2_ @unit @dead\n" +
                                         "op sub _Internal2_ 1 _Internal2_\n" +
                                         "op strictEqual _Internal3_ _Internal1_ @this\n" +
@@ -338,17 +362,18 @@ op equal ${output} _Internal_ ${flag}`;
                         final = BigInt(2 ** bits[slot * 1] - 1);
 
                         l = "";
-                        if (skip != 0) {
+                        if (skip != 0 || lineConsistency) {
+                            console.warn(lineConsistency);
                             l += "op shr " + v + " " + spl + " " + skip + "\n";
                             l += "op and " + v + " " + v + " " + final + "\n";
                         } else {
                             l += "op and " + v + " " + spl + " " + final + "\n";
                         }
                         break;
-                    //'spl obtainv' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
-                    //"split obtain variable"
-                    case "obtainv":
-                    case "ov":
+                    //'spl obtaind' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
+                    //"split obtain dynamic"
+                    case "obtaind":
+                    case "od":
                         v = l[2];
                         spl = map1.get(l[3])[0];
                         bits = map1.get(l[3])[1];
@@ -399,10 +424,10 @@ op equal ${output} _Internal_ ${flag}`;
 
                         l = "op and " + spl + " " + spl + " " + final;
                         break;
-                    //'spl clearv' expects parameters SPLIT NAME and (VARIABLE) INDEX
-                    //"split write variable"
-                    case "clearv":
-                    case "cv":
+                    //'spl cleard' expects parameters SPLIT NAME and (VARIABLE) INDEX
+                    //"split write dynamic"
+                    case "cleard":
+                    case "cd":
                         spl = map1.get(l[2])[0];
                         bits = map1.get(l[2])[1];
                         slot = l[3];
@@ -429,7 +454,7 @@ op equal ${output} _Internal_ ${flag}`;
                         l += "\n_DESTINATION" + des + "_:";
                         dividercount++;
                         break;
-                    //'spl writef' expects parameters VALUE, SPLIT NAME and (CONSTANT) INDEX
+                    //'spl writecf' expects parameters VALUE, SPLIT NAME and (CONSTANT) INDEX
                     //"split write fast"
                     case "writef":
                     case "wf":
@@ -443,47 +468,30 @@ op equal ${output} _Internal_ ${flag}`;
                         }
 
                         final = ~(BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip));
+                        if (testNumber(v) && lineConsistency == false) {
+                            v = BigInt(v) << BigInt(skip)
 
-                        l =
-                            "op and " +
-                            spl +
-                            " " +
-                            spl +
-                            " " +
-                            final +
-                            "\nop shl _Internal_ " +
-                            v +
-                            " " +
-                            skip +
-                            "\nop add " +
-                            spl +
-                            " " +
-                            spl +
-                            " _Internal_";
-                        break;
-                    //'spl writev' expects parameters VALUE, SPLIT NAME and (VARIABLE) INDEX
-                    //"split write variable"
-                    case "writev":
-                    case "wv":
-                        v = l[2];
-                        spl = map1.get(l[3])[0];
-                        bits = map1.get(l[3])[1];
-                        slot = l[4];
-                        des = dividercount;
-
-                        l =
-                            "op mul _Internal_ " +
-                            slot +
-                            " 4\nop add @counter @counter _Internal_\n";
-
-                        for (let y = 0; y < bits.length; y++) {
-                            l +=
+                            l =
                                 "op and " +
                                 spl +
                                 " " +
                                 spl +
                                 " " +
-                                ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
+                                final +
+                                "\nop add " +
+                                spl +
+                                " " +
+                                spl +
+                                " " +
+                                v;
+                        } else {
+                            l =
+                                "op and " +
+                                spl +
+                                " " +
+                                spl +
+                                " " +
+                                final +
                                 "\nop shl _Internal_ " +
                                 v +
                                 " " +
@@ -492,11 +500,72 @@ op equal ${output} _Internal_ ${flag}`;
                                 spl +
                                 " " +
                                 spl +
-                                " _Internal_\n";
-                            if (y != bits.length - 1) {
-                                l += "jump _DESTINATION" + des + "_ always\n";
+                                " _Internal_";
+                        }
+                        break;
+                    //'spl writed' expects parameters VALUE, SPLIT NAME and (VARIABLE) INDEX
+                    //"split write dynamic"
+                    case "writed":
+                    case "wd":
+                        v = l[2];
+                        spl = map1.get(l[3])[0];
+                        bits = map1.get(l[3])[1];
+                        slot = l[4];
+                        des = dividercount;
+
+                        if (testNumber(v) && lineConsistency == false) {
+                            l =
+                                "op mul _Internal_ " +
+                                slot +
+                                " 3\nop add @counter @counter _Internal_\n";
+                            for (let y = 0; y < bits.length; y++) {
+                                let precalcValue = BigInt(v) << BigInt(skip);
+                                l +=
+                                    "op and " +
+                                    spl +
+                                    " " +
+                                    spl +
+                                    " " +
+                                    ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
+                                    "\nop add " +
+                                    spl +
+                                    " " +
+                                    spl +
+                                    " " +
+                                    precalcValue +
+                                    "\n";
+                                if (y != bits.length - 1) {
+                                    l += "jump _DESTINATION" + des + "_ always\n";
+                                }
+                                skip += bits[y] * 1;
                             }
-                            skip += bits[y] * 1;
+                        } else {
+                            l =
+                                "op mul _Internal_ " +
+                                slot +
+                                " 4\nop add @counter @counter _Internal_\n";
+                            for (let y = 0; y < bits.length; y++) {
+                                l +=
+                                    "op and " +
+                                    spl +
+                                    " " +
+                                    spl +
+                                    " " +
+                                    ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
+                                    "\nop shl _Internal_ " +
+                                    v +
+                                    " " +
+                                    skip +
+                                    "\nop add " +
+                                    spl +
+                                    " " +
+                                    spl +
+                                    " _Internal_\n";
+                                if (y != bits.length - 1) {
+                                    l += "jump _DESTINATION" + des + "_ always\n";
+                                }
+                                skip += bits[y] * 1;
+                            }
                         }
                         l += "_DESTINATION" + des + "_:";
                         dividercount++;
