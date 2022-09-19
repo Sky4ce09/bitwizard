@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="something else, i guess">
     <title>bitspritery</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body style="background-color: black">
     <h4 style="height: 12px; color: white; font-family: 'Trebuchet MS'">This tool is not finished! It's on GitHub for interested people to make contributions, for now.</h4>
     <a href="https://sky4ce09.github.io/bitwizard">Go Back</a>
     <table>
         <tr>
+            <td><input id="spriteNameInput" type="text" oninput="setName()" placeholder="Sprite Name" size="7" value="MySprite" /><label for="canvasWidth">Sprite Name</label></td>
             <td><input id="canvasWidth" type="text" oninput="updateCanvas()" placeholder="Sprite Wdth" size="6" value="8" /><label for="canvasWidth">Sprite Width</label></td>
             <td><input id="canvasHeight" type="text" oninput="updateCanvas()" placeholder="Sprite Hght" size="6" value="8" /><label for="canvasHeight">Sprite Height</label></td>
-            <td><input id="canvasSizeScale" type="text" oninput="updateCanvas()" placeholder="Pixel Size" size="6" value="32" /><label for="canvasPixelScale">Pixel Size</label></td>
+            <td><input id="canvasSizeScale" type="text" oninput="updateCanvas()" placeholder="Pixel Size" size="6" value="32" /><label for="canvasPixelScale">Pixel Size (Editor)</label></td>
         </tr>
     </table><br />
     <style>

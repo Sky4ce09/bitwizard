@@ -1,4 +1,12 @@
-﻿class SizedCanvas {
+﻿let compileTimeVariables = {
+    recentStroke: "not set",
+    recentX: "not set",
+    recentY: "not set",
+    recentX2: "not set",
+    recentX2: "not set"
+}
+
+class SizedCanvas {
     constructor(canvas, size) {
         this.canvas = canvas;
         this.size = size;
@@ -51,8 +59,11 @@ function canvasDrawContent(itf) {
     itf.ctx.scale(itf.pixelSize, itf.pixelSize);
     let ch = itf.spriteHeight;
     for (let el of itf.contents) {
-        itf.ctx.fillStyle = el.color;
-        itf.ctx.strokeStyle = el.color;
+        let color = el.splitColor();
+        color[3] /= 255;
+        console.log(`rgb(${color[0]},${color[1]},${color[2]},${color[3]})`);
+        itf.ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
+        itf.ctx.strokeStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
         itf.ctx.lineWidth = 0;
         for (let d of el.elements) {
             switch (d.mode) {
@@ -101,6 +112,13 @@ class ColorGroup {
     sethtml(inObject) {
         this.html = inObject;
     }
+    splitColor(hashColor = this.color) {
+        let r = parseInt(hashColor.substring(1, 3), 16);
+        let g = parseInt(hashColor.substring(3, 5), 16);
+        let b = parseInt(hashColor.substring(5, 7), 16);
+        let a = this.alpha;
+        return [r, g, b, a];
+    }
 }
 
 class Graphic {
@@ -131,6 +149,16 @@ class FilledRect extends Graphic {
             "x:" + this.x + "y:" + this.y + "w:" + this.w + "h:" + this.h
         );
     }
+    toCode() {
+        let out =
+            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x + "\n" : "") +
+            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y + "\n" : "") +
+            "draw rect elementX elementY " + this.w + " " + this.h +
+            "\n";
+        compileTimeVariables.recentX = this.x;
+        compileTimeVariables.recentY = this.y;
+        return out;
+    }
 }
 
 class LineRect extends FilledRect {
@@ -151,6 +179,18 @@ class LineRect extends FilledRect {
         return (
             "x:" + this.x + "y:" + this.y + "w:" + this.w + "h:" + this.h + "b:" + this.b
         );
+    }
+    toCode() {
+        let out =
+            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x + "\n" : "") +
+            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y + "\n" : "") +
+            (this.b != compileTimeVariables.recentStroke ? "\ndraw stroke " + this.b : "") +
+            "draw lineRect elementX elementY " + this.w + " " + this.h +
+            "\n";
+        compileTimeVariables.recentX = this.x;
+        compileTimeVariables.recentY = this.y;
+        compileTimeVariables.recentStroke = this.b;
+        return out;
     }
 }
 
@@ -174,6 +214,22 @@ class Line extends Graphic {
         return (
             "x1:" + this.x1 + "y1:" + this.y1 + "x1:" + this.x2 + "y2:" + this.y2
         );
+    }
+    toCode() {
+        let out =
+            (this.x1 != compileTimeVariables.recentX ? "op add elementX inputX " + this.x1 + "\n" : "") +
+            (this.y1 != compileTimeVariables.recentY ? "op add elementY inputY " + this.y1 + "\n" : "") +
+            (this.x2 != compileTimeVariables.recentX2 ? "op add elementX2 inputX " + this.x2 + "\n" : "") +
+            (this.y2 != compileTimeVariables.recentY2 ? "op add elementY2 inputY " + this.y2 + "\n" : "") +
+            "draw stroke 1" +
+            "\ndraw line elementX elementY elementX2 elementY2" +
+            "\n";
+        compileTimeVariables.recentX = this.x1;
+        compileTimeVariables.recentY = this.y1;
+        compileTimeVariables.recentX2 = this.x2;
+        compileTimeVariables.recentY2 = this.y2;
+        compileTimeVariables.recentStroke = 1;
+        return out;
     }
 }
 
@@ -205,6 +261,7 @@ let updateCanvas = () => {
         spriteHeight: inputHeight,
         pixelSize: inputSizeScale,
     });
+    generateOutput();
 }
 
 let borderInputExists = false;
@@ -302,7 +359,7 @@ function updateHTML(hasTriggerColor = false) {
         colorPick.setAttribute("type", "color");
         colorPick.value = el.color;
         colorPick.addEventListener("input", () => {
-            el.color = colorPick.value + el.alpha;
+            el.color = colorPick.value;
             updateCanvas();
         });
         colorAlpha.setAttribute("type", "text");
@@ -310,8 +367,7 @@ function updateHTML(hasTriggerColor = false) {
         colorAlpha.setAttribute("size", 2);
         colorAlpha.value = el.alpha;
         colorAlpha.addEventListener("input", () => {
-            el.alpha = (colorAlpha.value * 1).toString(16) * 1;
-            el.color = colorPick.value + el.alpha;
+            el.alpha = colorAlpha.value;
             updateCanvas();
         });
         let colorSelect = document.createElement("input");
@@ -348,4 +404,45 @@ function updateHTML(hasTriggerColor = false) {
         });
         document.getElementById("colors").appendChild(colorListing);
     }
+    generateOutput();
+}
+
+let spriteName = "MySprite";
+
+function setName() {
+    spriteName = document.getElementById("spriteNameInput").value;
+    generateOutput();
+}
+
+function generateOutput() {
+    let outMlogData = document.getElementById("mlogData");
+    let outMlogDraw = document.getElementById("mlogDraw");
+    let outBitwData = document.getElementById("bitwData");
+    let outBitwDraw = document.getElementById("bitwDraw");
+
+    let out = "jump " + spriteName + "BRIDGE always\n" + spriteName + ":\n";
+    for (let con of interface.contents) {
+        out += "draw color 0x" + con.color.substring(1, 3) + " 0x" + con.color.substring(3, 5) + " 0x" + con.color.substring(5, 7) + " " + con.alpha + "\n";
+        for (let el of con.elements) {
+            out += el.toCode();
+        }
+    }
+    out += "set @counter " + spriteName + "_CB\n" + spriteName + "BRIDGE:\nnoop\n"
+    outMlogData.innerHTML = out;
+
+    out = "fun new " + spriteName + "\n";
+    for (let con of interface.contents) {
+        out += "draw color 0x" + con.color.substring(1, 3) + " 0x" + con.color.substring(3, 5) + " 0x" + con.color.substring(5, 7) + " " + con.alpha + "\n";
+        for (let el of con.elements) {
+            out += el.toCode();
+        }
+    }
+    out += "fun close\n"
+    outBitwData.innerHTML = out;
+
+    out = "set inputX \nset inputY \nop add " + spriteName + "_CB @counter 1\njump " + spriteName + " always\n";
+    outMlogDraw.innerHTML = out;
+
+    out = "set inputX \nset inputY \nfun have " + spriteName + "\n";
+    outBitwDraw.innerHTML = out;
 }
