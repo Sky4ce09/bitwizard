@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="something else, i guess">
+    <title>bitspritery</title>
+</head>
+<body style="background-color: black">
+    <h4 style="height: 12px; color: white; font-family: 'Trebuchet MS'">This tool is not finished! It's on GitHub for interested people to make contributions, for now.</h4>
+    <a href="https://sky4ce09.github.io/bitwizard">Go Back</a>
+    <table>
+        <tr>
+            <td><input id="canvasWidth" type="text" oninput="updateCanvas()" placeholder="Sprite Wdth" size="6" value="8" /><label for="canvasWidth">Sprite Width</label></td>
+            <td><input id="canvasHeight" type="text" oninput="updateCanvas()" placeholder="Sprite Hght" size="6" value="8" /><label for="canvasHeight">Sprite Height</label></td>
+            <td><input id="canvasSizeScale" type="text" oninput="updateCanvas()" placeholder="Pixel Size" size="6" value="32" /><label for="canvasPixelScale">Pixel Size</label></td>
+        </tr>
+    </table><br />
+    <style>
+        td label {
+            color: white;
+            font-family: Calibri;
+        }
+    </style>
+    <div id="field-wrapper" style="width: 320px">
+        <fieldset>
+            <legend class="w">Graphics Element Selection</legend>
+            <div id="selection-contents">
+                <input type="button" id="lineButton" class="select" value="+" onclick="addGraphicsElement(0)" />
+                <span class="w">Line</span>
+                <input type="button" id="rectButton" class="select" value="+" onclick="addGraphicsElement(1)" />
+                <span class="w">Filled Rectangle</span>
+                <input type="button" id="lineRectButton" class="select" value="+" onclick="addGraphicsElement(2)" />
+                <span class="w">Frame</span>
+            </div>
+            <style>
+                .w {
+                    color: white;
+                }
+            </style>
+        </fieldset>
+    </div>
+    <div>
+        <div>
+            <input type="button" value="+" onclick="addNewColor()" />
+        </div>
+        <table>
+            <tbody id="colors-wrap">
+                <tr id="colors"></tr>
+            </tbody>
+        </table>
+        <table>
+            <tbody id="elements"></tbody>
+        </table>
+    </div>
+    <style>
+        .listings {
+            background-color: aliceblue;
+            line-height: 1.8;
+            height: 35px;
+            top: 60%;
+            border-radius: 5px;
+        }
+
+        canvas {
+            border: 1px solid white;
+        }
+    </style>
+    <span id="interface-wrapper">
+        <canvas id="interface" width="256" height="256">Your browser doesn't support canvas!</canvas>
+    </span>
+    <div>
+        <span id="tooltip"></span>
+        <br />
+        <textarea class="output" style="color: white; background-color: black;" id="mlogData" cols="40" rows="25" readonly onmouseover="document.getElementById('tooltip').innerHTML = 'Sprite Data (raw mlog)'" onmouseout="document.getElementById('tooltip').innerHTML = ''" placeholder="Sprite Data (raw mlog)"></textarea>
+        <textarea class="output" style="color: white; background-color: black;" id="mlogDraw" cols="40" rows="25" readonly onmouseover="document.getElementById('tooltip').innerHTML = 'Draw Instructions (raw mlog)'" onmouseout="document.getElementById('tooltip').innerHTML = ''" placeholder="Draw Instructions (undercooked mlog)"></textarea>
+        <textarea class="output" style="color: white; background-color: black;" id="bitwData" cols="40" rows="25" readonly onmouseover="document.getElementById('tooltip').innerHTML = 'Sprite Data (bitwizard)'" onmouseout="document.getElementById('tooltip').innerHTML = ''" placeholder="Sprite Data (bitwizard)"></textarea>
+        <textarea class="output" style="color: white; background-color: black;" id="bitwDraw" cols="40" rows="25" readonly onmouseover="document.getElementById('tooltip').innerHTML = 'Draw Instructions (bitwizard)'" onmouseout="document.getElementById('tooltip').innerHTML = ''" placeholder="Draw Instructions (bitwizard)"></textarea>
+        <style>
+            #tooltip {
+                background-color: darkslategray;
+                color: white;
+            }
+        </style>
+    </div>
+    <script src="transform.js"></script>
+</body>
+</html>
