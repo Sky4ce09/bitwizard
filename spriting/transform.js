@@ -6,6 +6,16 @@
     recentX2: "not set"
 }
 
+function resetCTV() {
+    compileTimeVariables = {
+        recentStroke: "not set",
+        recentX: "not set",
+        recentY: "not set",
+        recentX2: "not set",
+        recentX2: "not set"
+    }
+}
+
 class SizedCanvas {
     constructor(canvas, size) {
         this.canvas = canvas;
@@ -64,19 +74,22 @@ function canvasDrawContent(itf) {
         console.log(`rgb(${color[0]},${color[1]},${color[2]},${color[3]})`);
         itf.ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
         itf.ctx.strokeStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
-        itf.ctx.lineWidth = 0;
         for (let d of el.elements) {
+            itf.ctx.lineWidth = 0;
             switch (d.mode) {
-                case "line":
-                    itf.ctx.beginPath(d.x1, ch - d.y1);
-                    itf.ctx.closePath(d.x2, ch - d.y2);
+                case "line": // yeah no, i'm fucked
+                    itf.ctx.lineWidth = 1;
+                    itf.ctx.beginPath();
+                    itf.ctx.moveTo(d.x1, ch - d.y1);
+                    itf.ctx.lineTo(d.x2, ch - d.y2);
+                    itf.ctx.stroke();
                     break;
                 case "rect":
                     itf.ctx.fillRect(d.x, ch - d.y - d.h, d.w, d.h);
                     break;
                 case "lineRect":
                     itf.ctx.lineWidth = d.b;
-                    itf.ctx.strokeRect(d.x, ch - d.y - d.h, d.w, d.h);
+                    itf.ctx.strokeRect(d.x + d.b / 2, ch - d.y + d.b / 2 - d.h, d.w - d.b, d.h - d.b);
                     break;
                 default:
                     break;
@@ -184,7 +197,7 @@ class LineRect extends FilledRect {
         let out =
             (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x + "\n" : "") +
             (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y + "\n" : "") +
-            (this.b != compileTimeVariables.recentStroke ? "\ndraw stroke " + this.b : "") +
+            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b + "\n" : "") +
             "draw lineRect elementX elementY " + this.w + " " + this.h +
             "\n";
         compileTimeVariables.recentX = this.x;
@@ -208,11 +221,11 @@ class Line extends Graphic {
         this.x1 = string.substring(string.indexOf("x1:") + 3, string.indexOf("y1:")) * 1
         this.y1 = string.substring(string.indexOf("y1:") + 3, string.indexOf("x2:")) * 1
         this.x2 = string.substring(string.indexOf("x2:") + 3, string.indexOf("y2:")) * 1
-        this.y2 = string.substring(string.indexOf("y2:") + 2, string.length) * 1
+        this.y2 = string.substring(string.indexOf("y2:") + 3, string.length) * 1
     }
     toString() {
         return (
-            "x1:" + this.x1 + "y1:" + this.y1 + "x1:" + this.x2 + "y2:" + this.y2
+            "x1:" + this.x1 + "y1:" + this.y1 + "x2:" + this.x2 + "y2:" + this.y2
         );
     }
     toCode() {
@@ -274,29 +287,13 @@ function addGraphicsElement(elementIndex) {
     if (typeof currentColorGroup == 'object') {
         [
             () => {
-                currentColorGroup.elements.push(new Line(currentColorGroup, {
-                    x1: 0,
-                    x2: 0,
-                    y1: 0,
-                    y2: 2
-                }));
+                currentColorGroup.elements.push(new Line(currentColorGroup));
             },
             () => {
-                currentColorGroup.elements.push(new FilledRect(currentColorGroup, {
-                    x: 0,
-                    y: 0,
-                    w: 3,
-                    h: 2
-                }));
+                currentColorGroup.elements.push(new FilledRect(currentColorGroup));
             },
             () => {
-                currentColorGroup.elements.push(new LineRect(currentColorGroup, {
-                    x: 0,
-                    y: 0,
-                    w: 3,
-                    h: 2,
-                    b: 1
-                }));
+                currentColorGroup.elements.push(new LineRect(currentColorGroup));
             },
         ][elementIndex]();
         updateHTML();
@@ -420,6 +417,8 @@ function generateOutput() {
     let outBitwData = document.getElementById("bitwData");
     let outBitwDraw = document.getElementById("bitwDraw");
 
+    resetCTV();
+
     let out = "jump " + spriteName + "BRIDGE always\n" + spriteName + ":\n";
     for (let con of interface.contents) {
         out += "draw color 0x" + con.color.substring(1, 3) + " 0x" + con.color.substring(3, 5) + " 0x" + con.color.substring(5, 7) + " " + con.alpha + "\n";
@@ -429,6 +428,8 @@ function generateOutput() {
     }
     out += "set @counter " + spriteName + "_CB\n" + spriteName + "BRIDGE:\nnoop\n"
     outMlogData.innerHTML = out;
+
+    resetCTV();
 
     out = "fun new " + spriteName + "\n";
     for (let con of interface.contents) {

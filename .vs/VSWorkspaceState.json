@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\spriting"
   ],
-  "SelectedNode": "\\transpile.js",
+  "SelectedNode": "\\spriting\\transform.js",
   "PreviewInSolutionExplorer": false
 }
