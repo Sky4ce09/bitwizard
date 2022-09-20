@@ -6,6 +6,13 @@
     recentX2: "not set"
 }
 
+
+// used for lines
+let simulate = document.createElement("canvas");
+simulate.setAttribute("width", 8);
+simulate.setAttribute("height", 8);
+let simcon = simulate.getContext("2d");
+
 function resetCTV() {
     compileTimeVariables = {
         recentStroke: "not set",
@@ -41,8 +48,8 @@ class Interface {
         } catch (e) {
             return;
         }
-        if (inserted.spriteWidth >= 1) this.spriteWidth = inserted.spriteWidth;
-        if (inserted.spriteHeight >= 1) this.spriteHeight = inserted.spriteHeight;
+        if (inserted.spriteWidth >= 1) this.spriteWidth = inserted.spriteWidth; simulate.setAttribute("width", this.spriteWidth);
+        if (inserted.spriteHeight >= 1) this.spriteHeight = inserted.spriteHeight; simulate.setAttribute("height", this.spriteHeight);
         if (inserted.pixelSize >= 1) this.pixelSize = inserted.pixelSize;
         this.src.width = this.spriteWidth * this.pixelSize;
         this.src.height = this.spriteHeight * this.pixelSize;
@@ -71,18 +78,25 @@ function canvasDrawContent(itf) {
     for (let el of itf.contents) {
         let color = el.splitColor();
         color[3] /= 255;
-        console.log(`rgb(${color[0]},${color[1]},${color[2]},${color[3]})`);
         itf.ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
         itf.ctx.strokeStyle = `rgb(${color[0]},${color[1]},${color[2]},${color[3]})`;
         for (let d of el.elements) {
             itf.ctx.lineWidth = 0;
             switch (d.mode) {
                 case "line": // yeah no, i'm fucked
-                    itf.ctx.lineWidth = 1;
-                    itf.ctx.beginPath();
-                    itf.ctx.moveTo(d.x1, ch - d.y1);
-                    itf.ctx.lineTo(d.x2, ch - d.y2);
-                    itf.ctx.stroke();
+                    itf.ctx.lineWidth = 1; // reduce it please
+
+                    let line = new Path2D();
+                    line.moveTo(d.x1, ch - d.y1);
+                    line.lineTo(d.x2, ch - d.y2);
+
+                    for (let y = 0.5; y < itf.spriteHeight; y++) {
+                        for (let x = 0.5; x < itf.spriteWidth; x++) {
+                            if (simcon.isPointInStroke(line, x, y)) {
+                                itf.ctx.fillRect(x - 0.5, y - 0.5, 1, 1);
+                            }
+                        }
+                    }
                     break;
                 case "rect":
                     itf.ctx.fillRect(d.x, ch - d.y - d.h, d.w, d.h);
@@ -208,7 +222,7 @@ class LineRect extends FilledRect {
 }
 
 class Line extends Graphic {
-    constructor(group, data = { x1: 0, y1: 0, x2: 4, y2: 4 }) {
+    constructor(group, data = { x1: 0, y1: 0, x2: 3, y2: 3 }) {
         super(group);
         this.name = "Line";
         this.mode = "line"
@@ -339,14 +353,13 @@ function updateHTML(hasTriggerColor = false) {
             input.setAttribute("type", "text");
             input.setAttribute("size", "13.5");
             input.value = gfx.toString();
-            input.addEventListener("input", () => { gfx.fromString(input.value); updateCanvas(); console.log(gfx, input.value); });
+            input.addEventListener("input", () => { gfx.fromString(input.value); updateCanvas(); });
             let label = document.createElement("span");
             label.setAttribute("style", "color: white; font-family: Arial;")
             label.innerHTML = gfx.name + " ";
             domElement.append(label, input);
             td.append(domElement);
         }
-        console.log(el);
         let colorListing = document.createElement("th");
         colorListing.setAttribute("class", "listings");
         colorListing.setAttribute("scope", "column");
