@@ -85,7 +85,6 @@ function canvasDrawContent(itf) {
             switch (d.mode) {
                 case "line": // yeah no, i'm fucked
                     console.log(d);
-                    itf.ctx.lineWidth = d.b;
                     simcon.lineWidth = d.b;
 
                     let line = new Path2D();
@@ -99,6 +98,8 @@ function canvasDrawContent(itf) {
                             }
                         }
                     }
+                    itf.ctx.fillRect(d.x1, ch - d.y1 - 1, 1, 1);
+                    itf.ctx.fillRect(d.x2, ch - d.y2 - 1, 1, 1);
                     break;
                 case "rect":
                     itf.ctx.fillRect(d.x, ch - d.y - d.h, d.w, d.h);
@@ -402,7 +403,7 @@ function updateHTML(hasTriggerColor = false) {
         colorDelete.setAttribute("data-index", i);
         colorDelete.addEventListener("click", () => {
             interface.contents.splice(colorDelete.getAttribute("data-index"), 1);
-            currentColorGroup = false;
+            currentColorGroup = currentColorGroup == el ? false : el;
             updateCanvas();
             updateHTML(false);
         });
