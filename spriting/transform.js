@@ -84,7 +84,9 @@ function canvasDrawContent(itf) {
             itf.ctx.lineWidth = 0;
             switch (d.mode) {
                 case "line": // yeah no, i'm fucked
-                    itf.ctx.lineWidth = 1; // reduce it please
+                    console.log(d);
+                    itf.ctx.lineWidth = d.b;
+                    simcon.lineWidth = d.b;
 
                     let line = new Path2D();
                     line.moveTo(d.x1, ch - d.y1);
@@ -222,7 +224,7 @@ class LineRect extends FilledRect {
 }
 
 class Line extends Graphic {
-    constructor(group, data = { x1: 0, y1: 0, x2: 3, y2: 3 }) {
+    constructor(group, data = { x1: 0, y1: 0, x2: 3, y2: 3, b: 1 }) {
         super(group);
         this.name = "Line";
         this.mode = "line"
@@ -230,16 +232,18 @@ class Line extends Graphic {
         this.y1 = data.y1;
         this.x2 = data.x2;
         this.y2 = data.y2;
+        this.b = data.b;
     }
     fromString(string) {
-        this.x1 = string.substring(string.indexOf("x1:") + 3, string.indexOf("y1:")) * 1
-        this.y1 = string.substring(string.indexOf("y1:") + 3, string.indexOf("x2:")) * 1
-        this.x2 = string.substring(string.indexOf("x2:") + 3, string.indexOf("y2:")) * 1
-        this.y2 = string.substring(string.indexOf("y2:") + 3, string.length) * 1
+        this.x1 = string.substring(string.indexOf("x:") + 2, string.indexOf("y:")) * 1
+        this.y1 = string.substring(string.indexOf("y:") + 2, string.indexOf("p:")) * 1
+        this.x2 = string.substring(string.indexOf("p:") + 2, string.indexOf("q:")) * 1
+        this.y2 = string.substring(string.indexOf("q:") + 2, string.indexOf("b:")) * 1
+        this.b = string.substring(string.indexOf("b:") + 2, string.length) * 1
     }
     toString() {
         return (
-            "x1:" + this.x1 + "y1:" + this.y1 + "x2:" + this.x2 + "y2:" + this.y2
+            "x:" + this.x1 + "y:" + this.y1 + "p:" + this.x2 + "q:" + this.y2 + "b:" + this.b
         );
     }
     toCode() {
@@ -248,14 +252,14 @@ class Line extends Graphic {
             (this.y1 != compileTimeVariables.recentY ? "op add elementY inputY " + this.y1 + "\n" : "") +
             (this.x2 != compileTimeVariables.recentX2 ? "op add elementX2 inputX " + this.x2 + "\n" : "") +
             (this.y2 != compileTimeVariables.recentY2 ? "op add elementY2 inputY " + this.y2 + "\n" : "") +
-            "draw stroke 1" +
-            "\ndraw line elementX elementY elementX2 elementY2" +
+            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b + "\n" : "") +
+            "draw line elementX elementY elementX2 elementY2" +
             "\n";
         compileTimeVariables.recentX = this.x1;
         compileTimeVariables.recentY = this.y1;
         compileTimeVariables.recentX2 = this.x2;
         compileTimeVariables.recentY2 = this.y2;
-        compileTimeVariables.recentStroke = 1;
+        compileTimeVariables.recentStroke = this.b;
         return out;
     }
 }
