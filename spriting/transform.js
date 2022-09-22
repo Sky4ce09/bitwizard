@@ -3,7 +3,7 @@
     recentX: "not set",
     recentY: "not set",
     recentX2: "not set",
-    recentX2: "not set"
+    recentY2: "not set"
 }
 
 
@@ -19,7 +19,7 @@ function resetCTV() {
         recentX: "not set",
         recentY: "not set",
         recentX2: "not set",
-        recentX2: "not set"
+        recentY2: "not set"
     }
 }
 
@@ -65,7 +65,7 @@ class Interface {
             for (let j = 0; j < this.spriteWidth * 2; j++) {
                 let col = pal[(i + j) % 2];
                 this.ctx.fillStyle = col;
-                this.ctx.fillRect(j / 2, i / 2, 1/2, 1/2);
+                this.ctx.fillRect(j / 2, i / 2, 1 / 2, 1 / 2);
             }
         }
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -84,7 +84,6 @@ function canvasDrawContent(itf) {
             itf.ctx.lineWidth = 0;
             switch (d.mode) {
                 case "line": // yeah no, i'm fucked
-                    console.log(d);
                     simcon.lineWidth = d.b;
 
                     let line = new Path2D();
@@ -334,14 +333,16 @@ function updateHTML(hasTriggerColor = false) {
     newInnerColors.setAttribute("id", "colors");
     htmlColors.appendChild(newInnerColors);
     for (let el of interface.contents) {
-        while (rowCount < el.elements.length) {
+        while (rowCount < el.elements.length + 1) {
             let newRow = document.createElement("tr");
             newRow.setAttribute("id", "row" + rowCount);
             newRow.setAttribute("class", "graphicsDataRow");
             for (let i = 0; i < interface.contents.length; i++) {
                 let newData = document.createElement("td");
                 newData.setAttribute("id", "data" + i + "-" + rowCount);
-                newData.setAttribute("style", "width: 180px");
+                newData.setAttribute("style", "width: 200px", "height: 15px");
+                newData.addEventListener("dragover", (event) => { permitDropElement(event) });
+                newData.addEventListener("drop", (event) => { dropElement(event) });
                 newRow.append(newData);
             }
             document.getElementById("elements").append(newRow);
@@ -353,14 +354,24 @@ function updateHTML(hasTriggerColor = false) {
         for (let j = 0; j < el.elements.length; j++) {
             let gfx = el.elements[j];
             let td = document.getElementById("data" + i + "-" + j);
+            td.removeEventListener("dragover", (event) => { permitDropElement(event) });
+            td.removeEventListener("drop", (event) => { dropElement(event) });
             let domElement = document.createElement("span");
+            domElement.setAttribute("data-index", i + "-" + j);
+            domElement.setAttribute("style", "width: 200px");
             let input = document.createElement("input");
             input.setAttribute("type", "text");
             input.setAttribute("size", "13.5");
+            input.setAttribute("data-index", i + "-" + j);
             input.value = gfx.toString();
             input.addEventListener("input", () => { gfx.fromString(input.value); updateCanvas(); });
             let label = document.createElement("span");
-            label.setAttribute("style", "color: white; font-family: Arial;")
+            label.setAttribute("style", "color: white; font-family: Arial; user-select: none;")
+            label.setAttribute("draggable", true);
+            label.addEventListener("dragstart", (event) => { dragElement(event) });
+            label.addEventListener("dragover", (event) => { permitDropElement(event) });
+            label.addEventListener("drop", (event) => { dropElement(event) });
+            label.setAttribute("data-index", i + "-" + j);
             label.innerHTML = gfx.name + " ";
             domElement.append(label, input);
             td.append(domElement);
@@ -368,7 +379,12 @@ function updateHTML(hasTriggerColor = false) {
         let colorListing = document.createElement("th");
         colorListing.setAttribute("class", "listings");
         colorListing.setAttribute("scope", "column");
-        colorListing.setAttribute("style", "width: 180px");
+        colorListing.setAttribute("style", "width: 200px");
+        colorListing.setAttribute("data-index", i);
+        colorListing.setAttribute("draggable", true);
+        colorListing.addEventListener("dragstart", (event) => { dragColorGroup(event) });
+        colorListing.addEventListener("dragover", (event) => { permitDropColorGroup(event); });
+        colorListing.addEventListener("drop", (event) => { dropColorGroup(event) });
         let colorPick = document.createElement("input");
         let colorAlpha = document.createElement("input");
         colorPick.setAttribute("type", "color");
@@ -380,6 +396,7 @@ function updateHTML(hasTriggerColor = false) {
         colorAlpha.setAttribute("type", "text");
         colorAlpha.setAttribute("placeholder", "Alpha");
         colorAlpha.setAttribute("size", 2);
+        colorAlpha.addEventListener("click", () => { colorAlpha.select(); });
         colorAlpha.value = el.alpha;
         colorAlpha.addEventListener("input", () => {
             el.alpha = colorAlpha.value;
@@ -412,6 +429,7 @@ function updateHTML(hasTriggerColor = false) {
         colorListing.appendChild(colorSelect);
         colorListing.appendChild(colorDelete);
         el.sethtml({
+            listing: colorListing,
             pick: colorPick,
             alpha: colorAlpha,
             select: colorSelect,
@@ -464,4 +482,55 @@ function generateOutput() {
 
     out = "set inputX \nset inputY \nfun have " + spriteName + "\n";
     outBitwDraw.innerHTML = out;
+}
+
+// drag and drop stuff goes here
+
+function dragColorGroup(dragEvent) {
+    dragEvent.dataTransfer.setData("text", "color-" + dragEvent.target.getAttribute("data-index"));
+}
+function dragElement(dragEvent) {
+    dragEvent.dataTransfer.setData("text", "element-" + dragEvent.target.getAttribute("data-index"));
+}
+
+// your standard drop permits
+function permitDropColorGroup(dragEvent) {
+    dragEvent.preventDefault();
+}
+function permitDropElement(dragEvent) {
+    dragEvent.preventDefault();
+}
+function permitDropEmpty(dragEvent) {
+    dragEvent.preventDefault();
+}
+
+// your drop triggers
+function dropColorGroup(dropEvent) {
+    let data = dropEvent.dataTransfer.getData("text");
+    if (dropEvent.dataTransfer.getData("text").indexOf("color") == -1) return;
+    dropEvent.preventDefault();
+    let index1 = data.replace("color-", "") * 1;
+    let index2 = dropEvent.target.getAttribute("data-index") * 1;
+    let swap1 = interface.contents[index1];
+    let swap2 = interface.contents[index2];
+    interface.contents[index1] = swap2;
+    interface.contents[index2] = swap1;
+    updateHTML();
+    updateCanvas();
+}
+function dropElement(dropEvent) {
+    let data = dropEvent.dataTransfer.getData("text");
+    if (dropEvent.dataTransfer.getData("text").indexOf("element") == -1) return;
+    let index1 = data.replace("element-", "").split("-");
+    let index2;
+    if (dropEvent.target.id.indexOf("data") != -1) {
+        index2 = dropEvent.target.id.replace("data", "").split("-")[0] * 1;
+    } else {
+        index2 = dropEvent.target.getAttribute("data-index").split("-")[0] * 1;
+    }
+    if (interface.contents[index1[0] * 1].elements[index1[1] * 1] === undefined) return; // why the fuck do you trigger twice sometimes????????
+    interface.contents[index2 * 1].elements.push(interface.contents[index1[0] * 1].elements.splice(index1[1] * 1, 1)[0]);
+    dropEvent.preventDefault();
+    updateHTML();
+    updateCanvas();
 }
