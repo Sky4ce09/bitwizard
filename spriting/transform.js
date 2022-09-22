@@ -180,9 +180,9 @@ class FilledRect extends Graphic {
     }
     toCode() {
         let out =
-            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x + "\n" : "") +
-            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y + "\n" : "") +
-            "draw rect elementX elementY " + this.w + " " + this.h +
+            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x * exportSize + "\n" : "") +
+            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y * exportSize + "\n" : "") +
+            "draw rect elementX elementY " + this.w * exportSize + " " + this.h * exportSize +
             "\n";
         compileTimeVariables.recentX = this.x;
         compileTimeVariables.recentY = this.y;
@@ -211,10 +211,10 @@ class LineRect extends FilledRect {
     }
     toCode() {
         let out =
-            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x + "\n" : "") +
-            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y + "\n" : "") +
-            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b + "\n" : "") +
-            "draw lineRect elementX elementY " + this.w + " " + this.h +
+            (this.x != compileTimeVariables.recentX ? "op add elementX inputX " + this.x * exportSize + "\n" : "") +
+            (this.y != compileTimeVariables.recentY ? "op add elementY inputY " + this.y * exportSize + "\n" : "") +
+            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b * exportSize + "\n" : "") +
+            "draw lineRect elementX elementY " + this.w * exportSize + " " + this.h * exportSize +
             "\n";
         compileTimeVariables.recentX = this.x;
         compileTimeVariables.recentY = this.y;
@@ -248,11 +248,11 @@ class Line extends Graphic {
     }
     toCode() {
         let out =
-            (this.x1 != compileTimeVariables.recentX ? "op add elementX inputX " + this.x1 + "\n" : "") +
-            (this.y1 != compileTimeVariables.recentY ? "op add elementY inputY " + this.y1 + "\n" : "") +
-            (this.x2 != compileTimeVariables.recentX2 ? "op add elementX2 inputX " + this.x2 + "\n" : "") +
-            (this.y2 != compileTimeVariables.recentY2 ? "op add elementY2 inputY " + this.y2 + "\n" : "") +
-            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b + "\n" : "") +
+            (this.x1 != compileTimeVariables.recentX ? "op add elementX inputX " + this.x1 * exportSize + "\n" : "") +
+            (this.y1 != compileTimeVariables.recentY ? "op add elementY inputY " + this.y1 * exportSize + "\n" : "") +
+            (this.x2 != compileTimeVariables.recentX2 ? "op add elementX2 inputX " + this.x2 * exportSize + "\n" : "") +
+            (this.y2 != compileTimeVariables.recentY2 ? "op add elementY2 inputY " + this.y2 * exportSize + "\n" : "") +
+            (this.b != compileTimeVariables.recentStroke ? "draw stroke " + this.b * exportSize + "\n" : "") +
             "draw line elementX elementY elementX2 elementY2" +
             "\n";
         compileTimeVariables.recentX = this.x1;
@@ -482,6 +482,16 @@ function generateOutput() {
 
     out = "set inputX \nset inputY \nfun have " + spriteName + "\n";
     outBitwDraw.innerHTML = out;
+}
+
+let exportSize = 1;
+function setExportSize(size) {
+    try {
+        exportSize = size * 1;
+        updateHTML();
+    } catch (e) {
+        exportSize = exportSize;
+    }
 }
 
 // drag and drop stuff goes here
