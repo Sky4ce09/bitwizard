@@ -126,8 +126,8 @@ function f(inp) {
         let skip = 0;
         let final;
         let des = 0;
-        let add;
         let bits = [];
+        let timer
 
         switch (l[0]) {
             //makes code segments read down the line consistent in terms of line count whereever applicable, but less optimized as a result
@@ -158,7 +158,8 @@ function f(inp) {
                     case "new":
                         map1.get("recentTimerInternal").push(l[2]);
                         map1.set(l[2], l[3]);
-                        l = "op add " + l[2] + " @time " + l[3];
+                        l = "set " + l[2] + " " + l[3] + "\n"+
+                            "op add " + l[2] + "_STAMP @time " + l[3];
                         break;
                     //'timer loop' expects parameter NAME
                     //determines where the timer loop starts (creates a new label 'NAME'_TIMER)
@@ -168,20 +169,15 @@ function f(inp) {
                     //'timer extend' expects parameters NAME and DURATION
                     //sorta redundant since there is absolutely no transformation here
                     case "extend":
-                        l = "op add " + l[2] + " " + l[2] + " " + l[3];
+                        l = "op add " + l[2] + "_STAMP " + l[2] + "_STAMP " + l[3];
                         break;
                     //'timer close' expects no parameters
                     //makes a timer actually come into effect
                     case "close":
+                        timer = map1.get("recentTimerInternal")[map1.get("recentTimerInternal").length - 1];
                         l =
-                            "jump " +
-                            map1.get("recentTimerInternal")[
-                            map1.get("recentTimerInternal").length - 1
-                            ] +
-                            "_TIMER lessThan @time " +
-                            map1.get("recentTimerInternal")[
-                            map1.get("recentTimerInternal").length - 1
-                            ];
+                            "op sub " + timer + " " + timer + "_STAMP @time\n" +
+                            "jump " + timer + "_TIMER greaterThan " + timer + " 0"
                         map1.get("recentTimerInternal").pop();
                 }
                 break;
