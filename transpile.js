@@ -1,895 +1,869 @@
-//no template strings because
-let l;
-let newstrarr;
-let map1;
-let dividercount;
-let hasImported;
-let loopcount;
-let maxLine;
+// call this Bitwizard 2.0
 
-function condLookup(inCond) {
-    switch (inCond) {
+let tooltipsEnabled = false;
+
+function lookupCondition(input) {
+    switch (input) {
         case "==":
         case "equal":
-            return ["equal", "notEqual"];
+            return "equal";
         case "===":
-            return ["strictEqual", "notEqual"];
+        case "strictEqual":
+            return "strictEqual";
         case "!=":
         case "not":
         case "notEqual":
-            return ["notEqual", "equal"];
+            return "notEqual";
         case ">":
         case "greaterThan":
-            return ["greaterThan", "lessThanEq"];
+            return "greaterThan";
         case "<":
         case "lessThan":
-            return ["lessThan", "greaterThanEq"];
+            return "lessThan";
         case ">=":
         case "greaterThanEq":
-            return ["greaterThanEq", "lessThan"];
+            return "greaterThanEq";
         case "<":
         case "lessThanEq":
-            return ["lessThanEq", "greaterThan"];
+            return "lessThanEq";
         default:
-            return ["equal", "notEqual"];
+            return "equal";
     }
 }
 
-function tp(inp) {
-    maxLine = 0;
-    try {
-        return f(inp);
-    } catch (e) {
-        return (
-            "Transpilation error at line " + maxLine + " (JavaScript: " + e + ")"
-        );
+function invertCondition(input) {
+    switch (input) {
+        case "==":
+        case "equal":
+        case "===":
+        case "strictEqual":
+            return "notEqual";
+        case "!=":
+        case "not":
+        case "notEqual":
+            return "equal";
+        case ">":
+        case "greaterThan":
+            return "lessThanEq";
+        case "<":
+        case "lessThan":
+            return "greaterThanEq";
+        case ">=":
+        case "greaterThanEq":
+            return "lessThan";
+        case "<":
+        case "lessThanEq":
+            return "greaterThan";
+        default:
+            return "notEqual";
     }
 }
-function prepareLine(input) {
-    while (input[0] == " " || input[0] == "\t") {
-        input = input.substring(1, input.length);
+
+function transpile(input) {
+    reset();
+    let lines = input.split("\n");
+
+    // cut out anything unwanted
+    for (let lineCount = 0; lineCount < lines.length; lineCount++) {
+        let line = lines[lineCount];
+
+        // cull tabs and spaces
+        while (line[0] == " " || line[0] == "\t") { line = line.substring(1, line.length); }
+        while (line[line.length - 1] == " " || line[line.length - 1] == "\t") { line = line.substring(0, line.length - 1); }
+
+        // remove empty lines
+        if (line === "") { lines.splice(lineCount, 1); }
     }
-    let bf = input.split(" "); //buffered segments
-    let out = [];
-    let pair = "";
-    for (let i = 0; i < bf.length; i++) {
-        if (
-            bf[i].indexOf('"') != -1 &&
-            bf[i].substring(bf[i].indexOf('"'), bf[i].length).indexOf('"') == -1
-        ) {
-            if (pair == "") {
-                pair = bf[i];
-            } else {
-                pair += bf[i];
-                out.push(pair);
-                pair = "";
+
+    // start processing the lines
+
+    for (let lineCount = 0; lineCount < lines.length; lineCount++) {
+        let line = lines[lineCount];
+
+        // skip comment lines, but preserve them
+        if (line[0] == "#") continue;
+
+        // split line by spaces, taking quotes into account
+        let segments = []; // this holds the keywords, parameters, etc.
+        let stringIndex = [];
+        for (let i = 0; i < line.length - 1; i++) {
+            if (line.substring(i, i + 2) === ' "') {
+                try {
+                    if (line.substring(i, i + 3) === ' " ') continue;
+                } catch (e) { }
+                stringIndex.push({ start: i + 1 });
             }
-        } else if (pair == "") {
-            out.push(bf[i]);
-        } else {
-            pair += bf[i];
         }
-    }
-    return out;
-}
-function parseRest(input, startIndex) {
-    let out = "";
-    for (let i = 0; i < input.length - 1; i++) {
-        input[i] += " ";
-    }
-    for (let i = startIndex; i < input.length; i++) {
-        out += input[i];
-    }
-    return out;
-}
-function testNumber(string) {
-    try {
-        let number = string * 1;
-        if (isNaN(number)) return false;
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-function f(inp) {
-    dividercount = 0;
-    loopcount = 0;
-    map1 = new Map();
-    map1.set("recentFunInternal", []);
-    map1.set("recentTimerInternal", []);
-    map1.set("recentPAInternal", []);
-    map1.set("recentForInternal", []);
-    newstrarr = [];
-    hasImported = 0;
-    let i = 0;
-    let outstr = "";
-    //puts lines into array items
-    let j = 0;
-    while (j < inp.length) {
-        if (inp[j] == "\n") {
-            newstrarr.push(inp.substring(i, j));
-            i = j + 1;
+        let validEndCount = 0;
+        for (let i = 0; i < line.length - 1; i++) {
+            if (line.substring(i, i + 2) === '" ') {
+                try {
+                    if (line.substring(i - 1, i + 2) === ' " ') continue;
+                } catch (e) { }
+                if (stringIndex[validEndCount].start >= i) continue; // oops
+                stringIndex[validEndCount].end = i;
+                validEndCount++;
+            }
         }
-        j += 1;
-    }
-    newstrarr.push(inp.substring(i, j));
 
-    let funs = [];
-    let lineConsistency = false;
-    for (let j = 0; j < newstrarr.length; j++) {
-        l = prepareLine(newstrarr[j]);
-        //'VALUE' also works with variables !!UNLESS SPECIFIED OTHERWISE!!
-
-        let v;
-        let spl;
-        let slot;
-        let skip = 0;
-        let final;
-        let des = 0;
-        let bits = [];
-        let timer
-
-        switch (l[0]) {
-            //makes code segments read down the line consistent in terms of line count whereever applicable, but less optimized as a result
-            case "consistent":
-            case "con":
-                lineConsistency = true;
-                l = "#consistent line counts vvv";
-                break;
-
-            //makes code segments read down the line more optimized, but inconsistent in terms of line count (default)
-            case "inconsistent":
-            case "incon":
-                lineConsistency = false;
-                l = "#inconsistent line counts vvv";
-                break;
-
-            //'terminate' makes the processor stuck until disabled (i think?)
-            case "terminate":
-                l = "op add @counter @counter -1";
-                break;
-
-            //unlike with the wait instruction, this will let you run code while the timer is going
-            case "timer":
-                switch (l[1]) {
-                    //'timer new' expects parameters NAME and DURATION
-                    //use in conjunction with 'timer loop' and 'timer close'
-                    //starts a timer
-                    case "new":
-                        map1.get("recentTimerInternal").push(l[2]);
-                        map1.set(l[2], l[3]);
-                        l = "set " + l[2] + " " + l[3] + "\n"+
-                            "op add " + l[2] + "_STAMP @time " + l[3];
-                        break;
-                    //'timer loop' expects parameter NAME
-                    //determines where the timer loop starts (creates a new label 'NAME'_TIMER)
-                    case "loop":
-                        l = l[2] + "_TIMER:";
-                        break;
-                    //'timer extend' expects parameters NAME and DURATION
-                    //sorta redundant since there is absolutely no transformation here
-                    case "extend":
-                        l = "op add " + l[2] + "_STAMP " + l[2] + "_STAMP " + l[3];
-                        break;
-                    //'timer close' expects no parameters
-                    //makes a timer actually come into effect
-                    case "close":
-                        timer = map1.get("recentTimerInternal")[map1.get("recentTimerInternal").length - 1];
-                        l =
-                            "op sub " + timer + " " + timer + "_STAMP @time\n" +
-                            "jump " + timer + "_TIMER greaterThan " + timer + " 0"
-                        map1.get("recentTimerInternal").pop();
+        // remove double spaces
+        for (let i = 0; i < line.length - 1; i++) {
+            if (line.substring(i, i + 2) === "  ") {
+                for (let el of stringIndex) {
+                    if (i > el.start && i < el.end) continue; // protected within strings, hopefully...
                 }
-                break;
+                line = line.substring(0, i) + " " + line.substring(i + 2);
+                for (let el of stringIndex) {
+                    if (el.start < i) return;
+                    el.start -= 1;
+                    el.end -= 1;
+                }
+                i--;
+            }
+        }
 
-            //flag utils
-            case "uflag":
-                if (true) {
-                    let condition;
-                    let oppositeCondition;
-                    let utype;
-                    let flag;
-                    let output;
-                    let add;
-                    switch (l[1]) {
-                        //'uflag get' may expect a parameter SAFETY and expects parameters UNIT TYPE and FLAG
-                        //also has optional tail parameter pairs ESCAPE CONDITION
+        //one space to the side for detection
+        line += " ";
 
-                        //ik this is confusing
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] == ' ') {
+                for (let el of stringIndex) {
+                    if (i > el.start && i < el.end) continue; // do not count spaces within strings, hopefully...
+                }
+                // no index complaints? hooray!
+                segments.push(line.substring(0, i));
+                line = line.substring(i + 1);
+                i = -1; // becomes 0 again after the iteration
+            }
+        }
 
-                        //binds a unit of a given type that has a specific flag
-                        case "get":
-                            if (l[2] == "any") {
-                                utype = l[3];
-                                flag = l[4];
-                                let escapeConditions = "\n";
-                                if (l.length > 6) {
-                                    let condCount = 1;
-                                    for (let i = 8; i < l.length; i += 2) {
-                                        condCount++;
-                                    }
-                                    let p = 5;
-                                    for (let i = 0; i < condCount; i++) {
-                                        let innerCondition = condLookup(l[p])[0];
-                                        let rightSide = l[p + 1];
-                                        escapeConditions += "jump UFLAGGET" + j + "B " + innerCondition + " @unit " + rightSide + "\n";
-                                        p += 2;
-                                    }
-                                    escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1) //cut off the last newline
-                                }
-                                l = `UFLAGGET${j}A:
-ubind ${utype}
-sensor _Internal_ @unit @flag
-jump UFLAGGET${j}B strictEqual _Internal_ ${flag}${escapeConditions}
-jump UFLAGGET${j}A always
-UFLAGGET${j}B:`;
-                            } else {
-                                utype = l[2];
-                                flag = l[3];
-                                let escapeConditions = "\n";
-                                if (l.length > 5) {
-                                    let condCount = 1;
-                                    for (let i = 7; i < l.length; i += 2) {
-                                        condCount++;
-                                    }
-                                    let p = 4;
-                                    for (let i = 0; i < condCount; i++) {
-                                        let innerCondition = condLookup(l[p])[0];
-                                        let rightSide = l[p + 1];
-                                        escapeConditions += "jump UFLAGGET" + j + "B " + innerCondition + " @unit " + rightSide + "\n";
-                                        p += 2;
-                                    }
-                                    escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1) //cut off the last newline
-                                }
-                                l = `UFLAGGET${j}A:
-ubind ${utype}
-sensor _Internal_ @unit @flag${escapeConditions}
-jump UFLAGGET${j}A notEqual _Internal_ ${flag}
-sensor _Internal_ @unit @controlled
-jump UFLAGGET${j}A notEqual _Internal_ 0
-UFLAGGET${j}B:`;
-                            }
-                            break;
+        let tooltipOutput = (lineCount == lines.length - 1 && tooltipsEnabled) ? processSegmentsToTooltip(segments) : "";
+        let codeOutput = processSegmentsToOutput(segments); // object with properties header, contents, footer and data
 
-                        //'uflag await' may expect a parameter CONDITION FLIP and expects a parameter FLAG
-                        //waits for the bound unit to receive a flag
-                        case "await":
-                            condition = condLookup(l[2])[0];
-                            oppositeCondition = condLookup(l[2])[1];
-                            if (l.length > 3) {
-                                flag = l[3];
-                                l = `UFLAGAWAIT${j}:
-sensor _Internal_ @unit @flag
-jump UFLAGAWAIT${j} ${oppositeCondition} _Internal_ ${flag}`;
-                            } else {
-                                flag = l[2];
-                                l = `UFLAGAWAIT${j}:
-sensor _Internal_ @unit @flag
-jump UFLAGAWAIT${j} notEqual _Internal_ ${flag}`;
-                            }
-                            break;
+        liveTooltip = tooltipOutput;
+        if (typeof codeOutput == "string") { if (codeOutput != "") contents.push(codeOutput); } else {
+            if (codeOutput.header != "") header.push(codeOutput.header);
+            if (codeOutput.contents != "") contents.push(codeOutput.contents);
+            if (codeOutput.footer != "") footer.push(codeOutput.footer);
+            if (codeOutput.data != "") data.push(codeOutput.data);
+        }
+    }
+    let output = tooltipsEnabled == true ? liveTooltip + "\n\n" : "";
+    for (let el of header) {
+        output += el + "\n";
+    }
+    output += header.length > 0 ? "\n" : "";
+    for (let el of contents) {
+        output += el + "\n";
+    }
+    output += contents.length > 0 ? "\n" : "";
+    for (let el of footer) {
+        output += el + "\n";
+    }
+    output += data.length > 0 ? "\n" : "";
+    for (let el of data) {
+        output += el + "\n";
+    }
+    return output;
+}
 
-                        //'uflag test' may expect a parameter CONDITION and expects parameters FLAG and OUTPUT
-                        //tests @unit's flag
-                        case "test":
-                            condition = condLookup(l[2])[0];
-                            oppositeCondition = condLookup(l[2])[1];
-                            if (l.length > 4) {
-                                flag = l[3];
-                                output = l[4];
-                                l = `sensor _Internal_ @unit @flag
-op ${condition} ${output} _Internal_ ${flag}`;
-                            } else {
-                                flag = l[2];
-                                output = l[3];
-                                l = `sensor _Internal_ @unit @flag
-op equal ${output} _Internal_ ${flag}`;
-                            }
-                            break;
+class Description {
+    constructor(names, parameters, description, branches = [], optionalBranch = false) {
+        this.names = names;
+        this.parameters = parameters; // a string
+        this.description = description;
+        this.branches = branches;
+        this.optionalBranch = optionalBranch;
+    }
+    getNames() {
+        let out = "";
+        for (let el of this.names) {
+            out += el + " / ";
+        }
+        out = out.length != 0 ? out.substring(0, out.length - 3) : out;
+        return out;
+    }
+    getFullData() {
+        let out = "#" + this.getNames() + "\n" +
+            "#Parameters: " + this.parameters + "\n" +
+            "#" + this.description;
+        return out;
+    }
+    addBranch(desc) {
+        this.branches.push(desc);
+    }
+    browseBranches(branchString) {
+        let branch = this.branches.find(el => el.names.indexOf(branchString != -1));
+        if (branch == undefined) {
+            if (this.optionalBranch || this.branches.length == 0) { return "Bitwizard thinks you're on the right track." }
+            return "#Bitwizard does not (yet) recognize this."
+        } else {
+            return branch;
+        }
+    }
+}
 
-                        //'uflag verify' expects a parameter FUNCTION or GOTO
-                        //jumps / calls a function if @unit is either being controlled by another processor or dead
-                        case "verify":
-                            for (let fun of funs) {
-                                if (fun === l[2]) {
-                                    l = "sensor _Internal1_ @unit @controlled\n" + //i just cant be consistent with code formatting for strings
-                                        "sensor _Internal2_ @unit @dead\n" +
-                                        "op sub _Internal2_ 1 _Internal2_\n" +
-                                        "op strictEqual _Internal3_ _Internal1_ @this\n" +
-                                        "op strictEqual _Internal4_ _Internal1_ null\n" +
-                                        "op add _Internal1_ _Internal3_ _Internal4_\n" +
-                                        "op land _Internal_ _Internal1_ _Internal2_\n" +
-                                        "op add " + fun + "_CB @counter 1\n" +
-                                        "jump " + fun + " equal _Internal_ 0";
-                                    break;
-                                }
-                            }
-                            if (typeof l == 'string') { break; } else {
-                                l = "sensor _Internal1_ @unit @controlled\n" +
-                                    "sensor _Internal2_ @unit @dead\n" +
-                                    "op sub _Internal2_ 1 _Internal2_\n" +
-                                    "op strictEqual _Internal3_ _Internal1_ @this\n" +
-                                    "op strictEqual _Internal4_ _Internal1_ null\n" +
-                                    "op add _Internal1_ _Internal3_ _Internal4_\n" +
-                                    "op land _Internal_ _Internal1_ _Internal2_\n" +
-                                    "jump " + l[2] + " equal _Internal_ 0";
-                                break;
-                            }
+let standardValues = {
+    variable: new Description(["variable"], "", "Commonly used for instruction output."),
+    number: new Description(["number"], "", "Also known as a double."),
+    boolean: new Description(["boolean"], "", "True or false."),
+    block: new Description(["block"], "", "A block in the game."),
+    unit: new Description(["boolean"], "", "A unit in the game."),
+    source: new Description(["sourcevalue"], "", "A value that is not computed during runtime."),
+}
 
-                        //'uflag' expects a parameter FLAG
-                        //flags bound @unit
-                        default:
-                            add = l[1];
-                            l = "ucontrol flag " + add;
-                            break;
-                    }
+let descriptions = [
+    new Description(["read"], "variable, value:block, value:double", "Reads the data of a memory block at an index and stores it in a variable."),
+    new Description(["write"], "value:double, value:block, value:double", "Writes a value a memory block at an index."),
+    new Description(["draw"], "graphictype", "Draws a graphic to its own draw buffer."),
+    new Description(["print"], "value:string", "Prints a string to its own print buffer."),
+    new Description(["drawflush", "drawf", "df"], "value:block", "Puts the draw buffer out to a display block."),
+    new Description(["printflush", "printf", "pf"], "value:block", "Puts the print buffer out to a message block."),
+    new Description(["getlink"], "variable, value:double", "Sets a variable as its n-th link."),
+    new Description(["control"], "property", "Modifies a block's property."),
+    new Description(["radar"], "value:block, targeting, targeting, targeting, order:boolean, sorting, variable", "Returns the sorted 1st unit (or lack thereof) that is within a building's targeting radius and meets the targeting requirements."),
+    new Description(["sensor"], "variable, value:block, contents/property", "Yields one of a block's properties."),
+    new Description(["set"], "variable, value", "You don't need this explained."),
+    new Description(["op"], "computation", "Performs a mathematical or a logical operation on one or more numbers. Input values are added at the end of this instruction."),
+    new Description(["wait"], "value:double", "Halts execution of further operations for a set amount of seconds."),
+    new Description(["lookup"], "datatype, variable, value:double", "Gets the n-th core database entry of a type."),
+    new Description(["end"], "", "Sets @counter to -1, which means it continues executing code from the first line."),
+    new Description(["jump", "jmp"], "index, condition, value, value", "Jump to a certain line of code if the condition is met."),
+    new Description(["ubind"], "unittype", "Binds the next unit of a type."),
+    new Description(["ucontrol"], "controlmode", "Controls the currently bound unit."),
+    new Description(["uradar"], "targeting, targeting, targeting, order:boolean, sorting, variable", "Returns the sorted 1st unit (or lack thereof) that is within the currently bound unit's targeting radius and meets the targeting requirements."),
+    new Description(["ulocate"], "locatabletype", "Orders the currently bound unit to locate something."),
+    new Description(["terminate"], "", "Stucks the processor."),
+    new Description(["spl"], "splitteroperation", "Perform an operation that deals with splitters."),
+    new Description(["timer"], "timeroperation", "Works with timers."),
+    new Description(["fun"], "functionoperation", "Deals with function creation or calling."),
+    new Description(["for"], "variable (, initialization), condition, value:double, increment", "Initializes a loop."),
+    new Description(["next"], "", "Closes the most recently initialized loop."),
+    new Description(["parray", "parr"], "sourcevalue, value:double", "Creates a pointer array with the ."),
+    new Description(["/"], "", "Closes one pointer's case of a pointer array."),
+    new Description(["log2"], "variable, value:double", "Calculates the base 2 logarithm of a number."),
+    new Description(["define", "def"], "number", "Implements various number definitions."),
+    new Description(["uflag"], "unittype/uflagoperation", "Flag the currently bound unit with shorter syntax or perform checks and actions on it."),
+];
+
+for (let el of descriptions) {
+    if (el.branches.length == 0) {
+        let params = el.parameters.split(", ");
+        for (let parameter of params) {
+            let keys = Object.keys(standardValues);
+            for (let key of keys) {
+                if (parameter.indexOf(key) != -1) {
+                    el.addBranch(standardValues[key]);
                     break;
                 }
+            }
+        }
+    }
+}
 
-            case "spl":
-                switch (l[1]) {
-                    //'spl new' expects parameters VARNAME, NEW SPLIT NAME and ADDITIONAL PARAMETERS listed here
-                    //bitcount of natural number 1, bitcount 2, bitcount 3...
-                    //if you're out of ideas for the splitter name, try PascalCase on the varname and just use that
-                    //splitters need names because you can assign multiple splitters to one variable
-                    case "new":
-                        v = l[2];
-                        map1.set(l[3], [v, []]);
-                        for (let i = 4; i < l.length; i++) {
-                            map1.get(l[3])[1].push(l[i]);
+
+let compileTimeVariables;
+
+let liveTooltip; // stuff that doesn't belong in the final result, not utilized by the main output generator
+let header; // stuff that goes to the top, like special variable definitions
+let contents; // the most important stuff
+let footer; // "end"'s residence
+let data; // stuff that is never accessed by @counter going down naturally, like functions
+
+function reset() {
+    compileTimeVariables = {
+        linesWithinFunction: false,
+        toggleConsistentLineCounts: false,
+        homogenousJumps: 0,
+        recentTimers: [],
+        recentLoops: [],
+        recentPointerArrays: [],
+        recentFunctions:[],
+        functions: new Map(),
+        splitters: new Map()
+    };
+    liveTooltip = "";
+    header = [];
+    contents = [];
+    footer = ["end"];
+    data = [];
+}
+
+function processSegmentsToTooltip(segments) {
+    // live tooltips and errors, i guess?
+
+    let currentDocs = false;
+    if (segments.length <= 1) {
+        let tooltip = "#Available instructions:\n#";
+        for (let el of descriptions) {
+            tooltip += el.getNames() + ", "
+        }
+        tooltip = tooltip.substring(0, tooltip.length - 2);
+        return tooltip;
+    }
+    for (let i = 0; i < segments.length - 1; i++) {
+        if (typeof currentDocs == "object") {
+            if (currentDocs.branches.length > 0) {
+                currentDocs = currentDocs.browseBranches(segments[i]);
+            } else {
+                return "#Bitwizard does not (yet) recognize this."
+            }
+        } else {
+            currentDocs = descriptions.find(el => el.names.indexOf(segments[i]) != -1);
+            if (currentDocs == undefined) {
+                return "#Bitwizard does not (yet) recognize this."
+            }
+        }
+    }
+
+    return typeof currentDocs === "string" ? currentDocs : currentDocs.getFullData();
+}
+
+function processSegmentsToOutput(segments) {
+    let output;
+    try {
+        switch (segments[0]) {
+            case "drawf":
+            case "df": {
+                output = "drawflush " + segments[1];
+                break;
+            }
+            case "printf":
+            case "pf": {
+                output = "printflush" + segments[1];
+                break;
+            }
+            case "consistent":
+            case "con": {
+                compileTimeVariables.toggleConsistentLineCounts = true;
+                output = "";
+                break;
+            }
+            case "inconsistent":
+            case "incon": {
+                compileTimeVariables.toggleConsistentLineCounts = false;
+                output = "";
+                break;
+            }
+            case "spl": {
+                switch (segments[1]) {
+                    case "new": {
+                        let mlogName = segments[2];
+                        let bitwName = segments[3];
+                        let bitranges = [];
+                        for (let i = 3; i < segments.length; i++) {
+                            bitranges.push(segments[i] * 1);
                         }
-                        l = "";
+                        compileTimeVariables.splitters.set(bitwName, {
+                            ref: mlogName,
+                            bitranges: bitranges
+                        });
                         break;
-                    //'spl obtainf' expects parameters VARNAME, SPLIT NAME and (CONSTANT) INDEX
-                    //"split obtain fast"
+                    }
                     case "obtainf":
-                    case "of":
-                        v = l[2];
-                        spl = map1.get(l[3])[0];
-                        bits = map1.get(l[3])[1];
-                        slot = l[4];
-
-                        for (let i = 0; i < slot * 1; i++) {
-                            skip = skip * 1 + bits[i] * 1;
+                    case "of": {
+                        let outputVariable = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        let bitrangeIndex = segments[4] * 1;
+                        let skippedBits = 0;
+                        for (let i = 0; i < bitrangeIndex; i++) {
+                            skippedBits += splitterEntry.bitranges[i];
                         }
 
-                        //bitwise and setup
-
-                        final = BigInt(2 ** bits[slot * 1] - 1);
-
-                        l = "";
-                        if (skip != 0 || lineConsistency) {
-                            console.warn(lineConsistency);
-                            l += "op shr " + v + " " + spl + " " + skip + "\n";
-                            l += "op and " + v + " " + v + " " + final + "\n";
+                        let mask = (BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1);
+                        if (skippedBits != 0 || compileTimeVariables.toggleConsistentLineCounts) {
+                            output =
+                                "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
+                                "op and " + outputVariable + " " + outputVariable + " " + mask;
                         } else {
-                            l += "op and " + v + " " + spl + " " + final + "\n";
+                            output = "op and " + outputVariable + " " + splitterEntry.ref + " " + mask;
                         }
                         break;
-                    //'spl obtaind' expects parameters VARNAME, SPLIT NAME and (VARIABLE) INDEX
-                    //"split obtain dynamic"
+                    }
                     case "obtaind":
-                    case "od":
-                        v = l[2];
-                        spl = map1.get(l[3])[0];
-                        bits = map1.get(l[3])[1];
-                        slot = l[4];
-                        des = dividercount;
+                    case "od": {
+                        let outputVariable = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        let bitrangeIndex = segments[4];
+                        let skippedBits = 0;
 
-                        l =
-                            "op mul _Internal_ " +
-                            slot +
-                            " 3\nop add @counter @counter _Internal_\n";
-                        for (let y = 0; y < bits.length; y++) {
-                            l +=
-                                "op shr " +
-                                v +
-                                " " +
-                                spl +
-                                " " +
-                                skip +
-                                "\nop and " +
-                                v +
-                                " " +
-                                v +
-                                " " +
-                                BigInt(Math.pow(2, bits[y]) - 1);
-                            if (y != bits.length - 1) {
-                                l += "\njump _DESTINATION" + des + "_ always\n";
-                            }
-                            skip += bits[y] * 1;
+                        output =
+                            "op mul _Internal_ " + bitrangeIndex + " 3\n" +
+                            "op add @counter @counter _Internal_\n";
+
+                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                            let bitrange = splitterEntry.bitranges[i];
+                            let mask = (BigInt(1) << BigInt(bitrange)) - BigInt(1);
+                            output =
+                                "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
+                                "op and " + outputVariable + " " + outputVariable + " " + mask + "\n" +
+                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always";
+                            skippedBits += bitrange;
                         }
-                        l += "\n_DESTINATION" + des + "_:";
-                        dividercount++;
+
+                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                        compileTimeVariables.homogenousJumps++;
                         break;
-                    //'spl clearf' expects parameters SPLIT NAME and (CONSTANT) INDEX
-                    //"split clear fast"
+                    }
                     case "clearf":
-                    case "cf":
-                        spl = map1.get(l[2])[0];
-                        bits = map1.get(l[2])[1];
-                        slot = l[3];
-
-                        for (let i = 0; i < slot * 1; i++) {
-                            skip = skip + bits[i] * 1;
+                    case "cf": {
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
+                        let bitrangeIndex = segments[3] * 1;
+                        let skippedBits = 0;
+                        for (let i = 0; i < bitrangeIndex; i++) {
+                            skippedBits += splitterEntry.bitranges[i];
                         }
 
-                        //bitwise and setup
-
-                        final = ~(BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip));
-
-                        l = "op and " + spl + " " + spl + " " + final;
+                        let mask = ~((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits);
+                        output = "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask;
                         break;
-                    //'spl cleard' expects parameters SPLIT NAME and (VARIABLE) INDEX
-                    //"split write dynamic"
+                    }
                     case "cleard":
-                    case "cd":
-                        spl = map1.get(l[2])[0];
-                        bits = map1.get(l[2])[1];
-                        slot = l[3];
-                        des = dividercount;
+                    case "cd": {
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
+                        let bitrangeIndex = segments[3];
+                        let skippedBits = 0;
 
-                        l =
-                            "op mul _Internal_ " +
-                            slot +
-                            " 2\nop add @counter @counter _Internal_\n";
+                        output =
+                            "op mul _Internal_ " + bitrangeIndex + " 2\n" +
+                            "op add @counter @counter _Internal_\n";
 
-                        for (let y = 0; y < bits.length; y++) {
-                            l +=
-                                "op and " +
-                                spl +
-                                " " +
-                                spl +
-                                " " +
-                                ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip));
-                            if (y != bits.length - 1) {
-                                l += "\njump _DESTINATION" + des + "_ always\n";
-                            }
-                            skip += bits[y] * 1;
+                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                            let bitrange = splitterEntry.bitranges[i];
+                            let mask = ~((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits);
+                            output =
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
+                            skippedBits += bitrange;
                         }
-                        l += "\n_DESTINATION" + des + "_:";
-                        dividercount++;
+
+                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                        compileTimeVariables.homogenousJumps++;
                         break;
-                    //'spl writecf' expects parameters VALUE, SPLIT NAME and (CONSTANT) INDEX
-                    //"split write fast"
+                    }
                     case "writef":
-                    case "wf":
-                        v = l[2];
-                        spl = map1.get(l[3])[0];
-                        bits = map1.get(l[3])[1];
-                        slot = l[4];
-
-                        for (let i = 0; i < slot * 1; i++) {
-                            skip = skip + bits[i] * 1;
+                    case "wf": {
+                        let inputValue = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        let bitrangeIndex = segments[4] * 1;
+                        let skippedBits = 0;
+                        for (let i = 0; i < bitrangeIndex; i++) {
+                            skippedBits += splitterEntry.bitranges[i];
                         }
 
-                        final = ~(BigInt(Math.pow(2, bits[slot * 1]) - 1) << BigInt(skip));
-                        if (testNumber(v) && lineConsistency == false) {
-                            v = BigInt(v) << BigInt(skip)
-
-                            l =
-                                "op and " +
-                                spl +
-                                " " +
-                                spl +
-                                " " +
-                                final +
-                                "\nop add " +
-                                spl +
-                                " " +
-                                spl +
-                                " " +
-                                v;
+                        let mask = ~((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits);
+                        if (Number(inputValue) === NaN || compileTimeVariables.toggleConsistentLineCounts) {
+                            output =
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                "op shl _Internal_ " + inputValue + " " + splitterEntry.bitranges[bitrangeIndex] + "\n" +
+                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
                         } else {
-                            l =
-                                "op and " +
-                                spl +
-                                " " +
-                                spl +
-                                " " +
-                                final +
-                                "\nop shl _Internal_ " +
-                                v +
-                                " " +
-                                skip +
-                                "\nop add " +
-                                spl +
-                                " " +
-                                spl +
-                                " _Internal_";
+                            inputValue = BigInt(inputValue) << BigInt(splitterEntry.bitranges[bitrangeIndex]);
+                            output =
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " " + inputValue;
                         }
                         break;
-                    //'spl writed' expects parameters VALUE, SPLIT NAME and (VARIABLE) INDEX
-                    //"split write dynamic"
+                    }
                     case "writed":
-                    case "wd":
-                        v = l[2];
-                        spl = map1.get(l[3])[0];
-                        bits = map1.get(l[3])[1];
-                        slot = l[4];
-                        des = dividercount;
+                    case "wd": {
+                        let inputValue = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        let bitrangeIndex = segments[4];
+                        let skippedBits = 0;
 
-                        if (testNumber(v) && lineConsistency == false) {
-                            l =
-                                "op mul _Internal_ " +
-                                slot +
-                                " 3\nop add @counter @counter _Internal_\n";
-                            for (let y = 0; y < bits.length; y++) {
-                                let precalcValue = BigInt(v) << BigInt(skip);
-                                l +=
-                                    "op and " +
-                                    spl +
-                                    " " +
-                                    spl +
-                                    " " +
-                                    ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
-                                    "\nop add " +
-                                    spl +
-                                    " " +
-                                    spl +
-                                    " " +
-                                    precalcValue +
-                                    "\n";
-                                if (y != bits.length - 1) {
-                                    l += "jump _DESTINATION" + des + "_ always\n";
-                                }
-                                skip += bits[y] * 1;
-                            }
-                        } else {
-                            l =
-                                "op mul _Internal_ " +
-                                slot +
-                                " 4\nop add @counter @counter _Internal_\n";
-                            for (let y = 0; y < bits.length; y++) {
-                                l +=
-                                    "op and " +
-                                    spl +
-                                    " " +
-                                    spl +
-                                    " " +
-                                    ~(BigInt(Math.pow(2, bits[y]) - 1) << BigInt(skip)) +
-                                    "\nop shl _Internal_ " +
-                                    v +
-                                    " " +
-                                    skip +
-                                    "\nop add " +
-                                    spl +
-                                    " " +
-                                    spl +
-                                    " _Internal_\n";
-                                if (y != bits.length - 1) {
-                                    l += "jump _DESTINATION" + des + "_ always\n";
-                                }
-                                skip += bits[y] * 1;
-                            }
+                        output =
+                            "op mul _Internal_ " + bitrangeIndex + " 3\n" +
+                            "op add @counter @counter _Internal_\n";
+
+                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                            let bitrange = splitterEntry.bitranges[i];
+                            let mask = ~((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits);
+                            output =
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                "op shl _Internal_ " + inputValue + " " + splitterEntry.bitranges[bitrangeIndex] + "\n" +
+                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
+                            skippedBits += bitrange;
                         }
-                        l += "_DESTINATION" + des + "_:";
-                        dividercount++;
+
+                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                        compileTimeVariables.homogenousJumps++;
                         break;
+                    }
                 }
                 break;
-
-            case "fun":
-                switch (l[1]) {
-                    //'fun new' expects parameter NAME
-                    //use in conjunction with 'fun close'
-                    case "new":
-                        if (l.length == 2) {
-                            //function without a name
-                            l = "#Give your function a good name...";
-                            break;
-                        }
-                        map1.get("recentFunInternal").push(l[2]);
-                        map1.set(l[2], dividercount - 1);
-                        funs.push(l[2]);
-                        l = "jump " + l[2] + "BRIDGE always\n" + l[2] + ":";
-                        break;
-                    //'fun close' expects no parameters
-                    case "close":
-                        let p = map1.get("recentFunInternal");
-                        l =
-                            "set @counter " +
-                            p[p.length - 1] +
-                            "_CB\n" +
-                            p[p.length - 1] +
-                            "BRIDGE:";
-                        map1.get("recentFunInternal").pop();
-                        break;
-                    //Have fun!
-                    //'fun have' expects parameter FUNCTION NAME
-                    case "have":
-                    case "call":
-                        if (l.length == 2) {
-                            //function without a name
-                            l =
-                                "#Can't have unannounced fun. Invite me to the party already!\n#(no function name provided)";
-                            break;
-                        }
-                        l =
-                            "op add " +
-                            l[2] +
-                            "_CB @counter 1\njump " +
-                            l[2] +
-                            " always";
-                        break;
-                }
-                break;
-
-            //log2 expects parameters VARNAME (output) and VALUE
-            //VARNAME may be the same as VALUE
-            //automatically imports LN2 if necessary
-            case "log2":
-                l =
-                    "op log " +
-                    l[1] +
-                    " " +
-                    l[2] +
-                    "\nop div " +
-                    l[1] +
-                    " " +
-                    l[1] +
-                    " LN2";
-                if (
-                    newstrarr.indexOf("import LN2") == -1 &&
-                    outstr.indexOf("op log LN2 2\n") == -1
-                ) {
-                    hasImported = 1;
-                    outstr += "op log LN2 2\n";
-                }
-                break;
-
-            //'define' expects any of the below cases as parameter
+            }
             case "define":
-            case "def":
-                hasImported = 1;
-                switch (l[1]) {
+            case "def": {
+                switch (segments[1]) {
                     case "LN2":
-                        if (outstr.indexOf("op log LN2 2") == -1) {
-                            outstr += "op log LN2 2\n";
-                        }
+                        output = {
+                            header: header.find(el => el.indexOf("op log LN2 2") != -1) == undefined ? "op log LN2 2" : "",
+                            contents: "",
+                            footer: "",
+                            data: "",
+                            unchangeable: false
+                        };
                         break;
                     case "LN16":
-                        if (outstr.indexOf("op log LN16 16\n") == -1) {
-                            outstr += "op log LN16 16\n";
-                        }
+                        output = {
+                            header: header.find(el => el.indexOf("op log LN16 16") != -1) == undefined ? "op log LN16 16" : "",
+                            contents: "",
+                            footer: "",
+                            data: "",
+                            unchangeable: false
+                        };
                         break;
-                    case "PI":
-                        if (outstr.indexOf("set PI 3.1415926535897932\n") == -1) {
-                            outstr += "set PI 3.1415926535897932\n";
-                        }
+                    case "PI": {
+                        output = {
+                            header: header.find(el => el.indexOf("set PI 3.1415926535897932") != -1) == undefined ? "set PI 3.1415926535897932" : "",
+                            contents: "",
+                            footer: "",
+                            data: "",
+                            unchangeable: false
+                        };
                         break;
+                    }
                 }
-                l = "";
                 break;
+            }
+            case "log2": {
+                let outputVariable = segments[1];
+                let inputValue = segments[2];
 
-            //'parray' expects parameters (CONSTANT) POINTERCOUNT and VALUE
-            //never forget to close your cases
-            case "pointarray":
-            case "parray":
-            case "parr":
-                let cases = l[1] * 1;
-                des = dividercount;
-                l = "op add @counter @counter " + l[2] + "\n";
-                for (let i = 0; i < cases; i++) {
-                    l += "jump " + des + "_d" + i + " always\n";
-                }
-                map1.get("recentPAInternal").push([cases, 1, des]);
-                l += des + "_d0:\n";
-                dividercount++;
+                output = {
+                    header: header.find(el => el.indexOf("op log LN2 2") != -1) == undefined ? "op log LN2 2" : "",
+                    contents: "op log _Internal_ " + inputValue + "\nop div " + outputVariable + " _Internal_ LN2",
+                    footer: "",
+                    data: "",
+                    unchangeable: false
+                };
                 break;
+            }
+            case "log16": {
+                let outputVariable = segments[1];
+                let inputValue = segments[2];
 
-            //'/' expects no parameters
-            //closes a case
-            case "/":
-                let h = map1.get("recentPAInternal")[
-                    map1.get("recentPAInternal").length - 1
-                ];
-                if (h[0] > h[1]) {
-                    l =
-                        "jump _DESTINATION" +
-                        h[2] +
-                        "_ always\n" +
-                        h[2] +
-                        "_d" +
-                        h[1] +
-                        ":";
-                    h[1] = h[1] + 1;
+                output = {
+                    header: header.find(el => el.indexOf("op log LN16 16") != -1) == undefined ? "op log LN16 16" : "",
+                    contents: "op log _Internal_ " + inputValue + "\nop div " + outputVariable + " _Internal LN16",
+                    footer: "",
+                    data: "",
+                    unchangeable: false
+                };
+                break;
+            }
+
+            case "for": {
+                let condition;
+                let rightSide;
+                let increment;
+                if (segments[2] == "=") {
+                    output = "set " + segments[1] + " " + segments[3] + "\n"
+                    condition = lookupCondition(segments[4]);
+                    rightSide = segments[5];
+                    increment = segments[6];
                 } else {
-                    l = "_DESTINATION" + h[2] + "_:\n";
-                    map1.get("recentPAInternal").pop();
+                    output = "";
+                    condition = lookupCondition(segments[2]);
+                    rightSide = segments[3];
+                    increment = segments[4];
                 }
-                break;
-
-            case "printf":
-            case "pf":
-                l = "printflush " + l[1];
-                break;
-
-            case "drawf":
-            case "df":
-                l = "drawflush " + l[1];
-                break;
-
-            case "jmp":
-            case "j":
-                l = "jump " + parseRest(l, 1);
-                break;
-            case "for":
-                if (true) {
-                    let summand;
-                    let condition;
-                    let oppositeCondition;
-                    let warn = 0;
-                    let variable;
-                    let setTo;
-                    let rightside;
-                    let m;
-                    let id;
-                    let l2;
-                    let l3;
-                    variable = l[1];
-                    if (l[2] == "=") {
-                        setTo = l[3];
-                        condition = l[4];
-                        rightside = l[5];
-                        summand = l[6];
-                    } else {
-                        condition = l[2];
-                        rightside = l[3];
-                        summand = l[4];
-                    }
-                    //condition dictionary
-                    switch (condition) {
-                        case "==":
-                            condition = "equal";
-                            oppositeCondition = "notEqual";
-                            break;
-                        case "!=":
-                        case "not":
-                            condition = "notEqual";
-                            oppositeCondition = "equal";
-                            break;
-                        case ">=":
-                            condition = "greaterThanEq";
-                            oppositeCondition = "lessThan";
-                            break;
-                        case "<=":
-                            condition = "lessThanEq";
-                            oppositeCondition = "greaterThan";
-                            break;
-                        case ">":
-                            condition = "greaterThan";
-                            oppositeCondition = "lessThanEq";
-                            break;
-                        case "<":
-                            condition = "lessThan";
-                            oppositeCondition = "greaterThanEq";
-                            break;
-                        case "===":
-                            condition = "strictEqual";
-                            warn = 1;
-                            break;
-                    }
-                    map1
-                        .get("recentForInternal")
-                        .push([
-                            loopcount,
-                            variable,
-                            summand,
-                            condition,
-                            rightside,
-                            l.length - 2 * (l[2] == "="),
-                        ]);
-                    l2 = "_FORLOOP" + loopcount + "_:\n";
-                    l3 = "set " + variable + " " + setTo + "\n";
-                    if (warn) {
-                        if (variable != setTo && l.length >= 6) {
-                            l =
-                                l3 +
-                                `op strictEqual _Internal_ ${variable} ${rightside}\n` +
-                                "jump _ENDLOOP" +
-                                loopcount +
-                                "_ notEqual _Internal_ 1\n" +
-                                l2;
-                        } else {
-                            l =
-                                `op strictEqual _Internal_ ${variable} ${rightside}\n` +
-                                "jump _ENDLOOP" +
-                                loopcount +
-                                "_ notEqual _Internal_ 1\n" +
-                                l2;
-                        }
-                    } else {
-                        if (variable != setTo && l.length >= 6) {
-                            l =
-                                l3 +
-                                "jump _ENDLOOP" +
-                                loopcount +
-                                "_ " +
-                                oppositeCondition +
-                                " " +
-                                variable +
-                                " " +
-                                rightside +
-                                "\n" +
-                                l2;
-                        } else {
-                            l =
-                                "jump _ENDLOOP" +
-                                loopcount +
-                                "_ " +
-                                oppositeCondition +
-                                " " +
-                                variable +
-                                " " +
-                                rightside +
-                                "\n" +
-                                l2;
-                        }
-                        loopcount++;
-                    }
+                compileTimeVariables.recentLoops.push({
+                    identification: compileTimeVariables.homogenousJumps,
+                    leftSide: segments[1],
+                    condition: condition,
+                    rightSide: rightSide,
+                    increment: increment
+                });
+                if (condition == "strictEqual" || compileTimeVariables.toggleConsistentLineCounts) {
+                    output +=
+                        "op " + condition + " _Internal_ " + segments[1] + " " + rightSide + "\n" +
+                        "jump _ENDLOOP" + compileTimeVariables.homogenousJumps + "_ " + invertCondition(condition) + " _Internal_ 1\n" +
+                        "_LOOP" + compileTimeVariables.homogenousJumps + "_:";
+                } else {
+                    output +=
+                        "jump _ENDLOOP" + compileTimeVariables.homogenousJumps + "_ " + invertCondition(condition) + " " + segments[1] + " " + rightSide + "\n" +
+                        "_LOOP" + compileTimeVariables.homogenousJumps + "_:";
                 }
+                compileTimeVariables.homogenousJumps++;
                 break;
-            case "next":
-                if (true) {
-                    let variable;
-                    let condition;
-                    let rightside;
-                    let m;
-                    let id;
-                    let l2;
-                    let summand;
-                    m = map1.get("recentForInternal").pop();
-                    id = m[0];
-                    variable = m[1];
-                    summand = m[2];
-                    condition = m[3];
-                    rightside = m[4];
-                    let lineLen = m[5];
-                    if (lineLen >= 5) {
-                        l =
-                            `op add ${variable} ${variable} ${summand}` +
-                            "\n" +
-                            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
-                            "\n" +
-                            `_ENDLOOP${id}_:` +
-                            "\n";
-                    } else {
-                        l =
-                            `jump _FORLOOP${id}_ ${condition} ${variable} ${rightside}` +
-                            "\n" +
-                            `_ENDLOOP${id}_:` +
-                            "\n";
-                    }
-                }
-                break;
-        }
-        if (typeof l == "object") {
-            let outl = l[0];
-            for (let it = 1; it < l.length; it++) {
-                outl = outl + " " + l[it];
             }
-            newstrarr[j] = outl;
+            case "next": {
+                let loopData = compileTimeVariables.recentLoops[compileTimeVariables.recentLoops.length - 1];
+                let leftSide = loopData.leftSide;
+                let condition = loopData.condition;
+                let rightSide = loopData.rightSide;
+                let increment = loopData.increment;
+
+                output =
+                    "op add " + leftSide + " " + leftSide + " " + increment + "\n" +
+                    "jump _LOOP" + loopData.identification + "_ " + condition + " " + leftSide + " " + rightSide + "\n" +
+                    "_ENDLOOP" + loopData.identification + "_:";
+                break;
+            }
+
+            case "fun": {
+                switch (segments[1]) {
+                    case "new": {
+                        compileTimeVariables.recentFunctions.push(segments[2]);
+                        compileTimeVariables.functions.set(segments[2], "exists");
+                        output = {
+                            header: "",
+                            contents: "",
+                            footer: "",
+                            data: segments[2] + ":",
+                            unchangeable: true
+                        };
+                        compileTimeVariables.linesWithinFunction = true;
+                        break;
+                    }
+                    case "close": {
+                        let functionName = compileTimeVariables.recentFunctions.pop();
+                        output = {
+                            header: "",
+                            contents: "",
+                            footer: "",
+                            data: "set @counter _" + functionName + "CB_",
+                            unchangeable: true
+                        };
+                        compileTimeVariables.linesWithinFunction = false;
+                        break;
+                    }
+                    case "have":
+                    case "call": {
+                        output = {
+                            header: "",
+                            contents: "op add _" + segments[2] + "CB_ @counter 1\njump " + segments[2] + " always",
+                            footer: "",
+                            data: "",
+                            unchangeable: false
+                        };
+                        break;
+                    }
+                }
+                break;
+            }
+
+            case "timer": {
+                switch (segments[1]) {
+                    case "start":
+                    case "new": {
+                        compileTimeVariables.recentTimers.push(segments[2]);
+                        output =
+                            "set " + segments[2] + " " + segments[3] + "\n" +
+                            "op add _" + segments[2] + "STAMP_ @time " + segments[3];
+                        break;
+                    }
+                    case "loop": {
+                        output = "_" + segments[2] + "TIMER_:";
+                        break;
+                    }
+                    case "extend": {
+                        output = "op add _" + segments[2] + "STAMP_ _" + segments[2] + "STAMP_ " + segments[3];
+                        break;
+                    }
+                    case "close": {
+                        let timerName = compileTimeVariables.recentTimers.pop();
+                        output =
+                            "op sub " + timerName + " _" + timerName + "STAMP_ @time\n" +
+                            "jump _" + timerName + "TIMER_ greaterThan " + timerName + " 0"
+                        break;
+                    }
+                }
+                break;
+            }
+
+            case "uflag": {
+                switch (segments[1]) {
+                    case "get": {
+                        output = "";
+                        if (segments[2] == "any") {
+                            let unitType = segments[3];
+                            let flag = segments[4];
+                            let escapeConditions = "";
+                            for (let i = 5; i + 1 < segments.length; i += 2) {
+                                let condition = segments[i];
+                                let rightSide = segments[i + 1];
+                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ " + condition + " @unit " + rightSide + "\n";
+                            }
+                            escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
+                            output =
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A:\n" +
+                                "ubind " + unitType + "\n" +
+                                "sensor _Internal_ @unit @flag\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B strictEqual _Internal_ " + flag + "\n" +
+                                escapeConditions + // comes with a new line
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A always\n" +
+                                "_UFLAGGET" + compileTimeVariables + "B_:";
+                            compileTimeVariables.homogenousJumps++;
+                        } else {
+                            let unitType = segments[2];
+                            let flag = segments[3];
+                            let escapeConditions = "";
+                            for (let i = 4; i + 1 < segments.length; i += 2) {
+                                let condition = segments[i];
+                                let rightSide = segments[i + 1];
+                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ " + condition + " @unit " + rightSide + "\n";
+                            }
+                            escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
+                            output =
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A:\n" +
+                                "ubind " + unitType + "\n" +
+                                "sensor _Internal_ @unit @flag\n" +
+                                escapeConditions + // comes with a new line
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B strictEqual _Internal_ " + flag + "\n" +
+                                "sensor _Internal_ @unit @controlled\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A always\n" +
+                                "_UFLAGGET" + compileTimeVariables + "B_:";
+                            compileTimeVariables.homogenousJumps++;
+                        }
+                        break;
+                    }
+                    case "await": {
+                        if (segments.length > 3) { // only implements the condition when the user types four parameters
+                            let oppositeCondition = invertCondition(lookupCondition(segments[2]));
+                            let flag = segments[3];
+                            output =
+                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n" +
+                                "sensor _Internal_ @unit @flag\n" +
+                                "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ " + oppositeCondition + " " + "_Internal_ " + flag;
+                        } else {
+                            let flag = segments[2];
+                            output =
+                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n" +
+                                "sensor _Internal_ @unit @flag\n" +
+                                "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ notEqual " + "_Internal_ " + flag;
+                        }
+                        compileTimeVariables.homogenousJumps++;
+                        break;
+                    }
+                    case "test": {
+                        if (segments.length > 4) { // uses a default condition if the condition parameter hasn't been added yet
+                            let condition = lookupCondition(segments[2]);
+                            let flag = segments[3];
+                            let output = segments[4];
+                            output =
+                                "sensor _Internal_ @unit @flag\n" +
+                                "op " + condition + " " + output + " " + flag + " _Internal_";
+                        } else {
+                            let flag = segments[2];
+                            let output = segments[3];
+                            output =
+                                "sensor _Internal_ @unit @flag\n" +
+                                "op equal " + output + " " + flag + " _Internal_";
+                        }
+                        break;
+                    }
+                    case "verify": {
+                        if (compileTimeVariables.recentFunctions.get(segments[2]) == "exists") {
+                            output =
+                                "sensor _Internal1_ @unit @controlled\n" +
+                                "sensor _Internal2_ @unit @dead\n" +
+                                "op sub _Internal2_ 1 _Internal2_\n" +
+                                "op strictEqual _Internal3_ _Internal1_ @this\n" +
+                                "op strictEqual _Internal4_ _Internal1_ null\n" +
+                                "op add _Internal1_ _Internal3_ _Internal4_\n" +
+                                "op land _Internal_ _Internal1_ _Internal2_\n" +
+                                "op add " + segments[2] + "_CB @counter 1\n" +
+                                "jump " + segments[2] + " equal _Internal_ 0";
+                        } else {
+                            output =
+                                "sensor _Internal1_ @unit @controlled\n" +
+                                "sensor _Internal2_ @unit @dead\n" +
+                                "op sub _Internal2_ 1 _Internal2_\n" +
+                                "op strictEqual _Internal3_ _Internal1_ @this\n" +
+                                "op strictEqual _Internal4_ _Internal1_ null\n" +
+                                "op add _Internal1_ _Internal3_ _Internal4_\n" +
+                                "op land _Internal_ _Internal1_ _Internal2_\n" +
+                                "jump " + segments[2] + " equal _Internal_ 0";
+                        }
+                        break;
+                    }
+                    default:
+                        output = "ucontrol flag " + segments[1];
+                        break;
+                }
+            }
+            case "parray":
+            case "parr": {
+                let pointerAmount = segments[1] * 1;
+                output = "op add @counter @counter " + segments[2];
+                for (let i = 0; i < pointerAmount; i++) {
+                    output += "\njump _BRANCHPARRAY" + compileTimeVariables.homogenousJumps + "-" + i + "_ always";
+                }
+                output += "\n_BRANCHPARRAY" + compileTimeVariables.homogenousJumps + "-0_:"
+                if (pointerAmount > 1) {
+                    compileTimeVariables.recentPointerArrays.push({
+                        identification: compileTimeVariables.homogenousJumps,
+                        closedCases: 1, // is one after automatic first case closure
+                        openCases: pointerAmount
+                    });
+                } else {
+                    out += "\n#You don't need this pointer array..."
+                }
+                break;
+            }
+            case "/": {
+                let parrayData = compileTimeVariables.recentPointerArrays[compileTimeVariables.recentPointerArrays.length - 1];
+                if (parrayData.openCases <= 1) {
+                    output = "_MERGEPARRAY" + parrayData.identification + "_:";
+                    compileTimeVariables.recentPointerArrays.pop();
+                } else {
+                    output =
+                        "jump _MERGEPARRAY" + parrayData.identification + "_ always\n" +
+                        "_BRANCHPARRAY" + parrayData.identification + "-" + parrayData.closedCases + "_:"
+                    parrayData.closedCases++;
+                    parrayData.openCases--;
+                }
+                break;
+            }
+        }
+        if (typeof output === "string") {
+            if (compileTimeVariables.linesWithinFunction) {
+                output = {
+                    header: "",
+                    contents: "",
+                    footer: "",
+                    data: output
+                }
+            }
+        } else if (typeof output === "object") {
+            if (output.contents != "") {
+                if (compileTimeVariables.linesWithinFunction && output.unchangeable == false) {
+                    output = {
+                        header: output.header,
+                        contents: output.data,
+                        footer: output.footer,
+                        data: output.contents
+                    }
+                }
+            }
         } else {
-            newstrarr[j] = l;
+            output = "";
+        };
+    } catch (e) {
+        output = "";
+        for (let el of segments) {
+            output += el + " ";
         }
-        maxLine++;
     }
-    if (hasImported == 1) {
-        outstr += "_PSTART_:\n";
-    }
-    for (let line of newstrarr) {
-        if (line[0] != "\n" && line[0] != undefined) {
-            outstr += line;
-            if (line[line.length - 1] != "\n") {
-                outstr += "\n";
+    if (output == "" || output == "\n") {
+        output = {
+            header: "",
+            contents: "",
+            footer: "",
+            data: ""
+        };
+        if (compileTimeVariables.linesWithinFunction) {
+            for (let el of segments) {
+                output.data += el + " ";
+            }
+        } else {
+            for (let el of segments) {
+                output.contents += el + " ";
             }
         }
     }
-    if (hasImported == 1) {
-        outstr += "jump _PSTART_ always\n";
-    } else {
-        outstr += "end";
-    }
-    return outstr;
+    return output
 }
