@@ -27,7 +27,7 @@ function lookupCondition(input) {
         case "lessThanEq":
             return "lessThanEq";
         default:
-            return "equal";
+            return "invalid";
     }
 }
 
@@ -55,7 +55,7 @@ function invertCondition(input) {
         case "lessThanEq":
             return "greaterThan";
         default:
-            return "notEqual";
+            return "invalid";
     }
 }
 
@@ -343,6 +343,20 @@ function processSegmentsToOutput(segments) {
             case "incon": {
                 compileTimeVariables.toggleConsistentLineCounts = false;
                 output = "";
+                break;
+            }
+            case "expectlink":
+            case "expect": {
+                output = {
+                    header: "",
+                    contents: "",
+                    footer: "",
+                    data: ""
+                };
+                for (let i = 1; i < segments.length; i++) {
+                    let building = segments[i];
+                    output.header += "jump 0 strictEqual " + building + " null\n";
+                }
                 break;
             }
             case "spl": {
@@ -689,13 +703,13 @@ function processSegmentsToOutput(segments) {
                             }
                             escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
                             output =
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A:\n" +
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A_:\n" +
                                 "ubind " + unitType + "\n" +
                                 "sensor _Internal_ @unit @flag\n" +
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B strictEqual _Internal_ " + flag + "\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ strictEqual _Internal_ " + flag + "\n" +
                                 escapeConditions + // comes with a new line
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A always\n" +
-                                "_UFLAGGET" + compileTimeVariables + "B_:";
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A_ always\n" +
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "B_:";
                             compileTimeVariables.homogenousJumps++;
                         } else {
                             let unitType = segments[2];
@@ -708,30 +722,40 @@ function processSegmentsToOutput(segments) {
                             }
                             escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
                             output =
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A:\n" +
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A_:\n" +
                                 "ubind " + unitType + "\n" +
                                 "sensor _Internal_ @unit @flag\n" +
                                 escapeConditions + // comes with a new line
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B strictEqual _Internal_ " + flag + "\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ strictEqual _Internal_ " + flag + "\n" +
                                 "sensor _Internal_ @unit @controlled\n" +
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A always\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A_ always\n" +
                                 "_UFLAGGET" + compileTimeVariables + "B_:";
                             compileTimeVariables.homogenousJumps++;
                         }
                         break;
                     }
                     case "await": {
-                        if (segments.length > 3) { // only implements the condition when the user types four parameters
+                        if (lookupCondition(segments[2]) != "invalid") {
                             let oppositeCondition = invertCondition(lookupCondition(segments[2]));
                             let flag = segments[3];
                             output =
-                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n" +
+                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n";
+                            for (let i = 4; i < segments.length; i++) {
+                                output +=
+                                    "op add _" + segments[i] + "CB_ @counter 1\njump " + segments[i] + " always\n";
+                            }
+                            output +=
                                 "sensor _Internal_ @unit @flag\n" +
                                 "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ " + oppositeCondition + " " + "_Internal_ " + flag;
                         } else {
                             let flag = segments[2];
                             output =
-                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n" +
+                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n";
+                            for (let i = 3; i < segments.length; i++) {
+                                output +=
+                                    "op add _" + segments[i] + "CB_ @counter 1\njump " + segments[i] + " always\n";
+                            }
+                            output +=
                                 "sensor _Internal_ @unit @flag\n" +
                                 "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ notEqual " + "_Internal_ " + flag;
                         }
@@ -784,6 +808,7 @@ function processSegmentsToOutput(segments) {
                         output = "ucontrol flag " + segments[1];
                         break;
                 }
+                break;
             }
             case "parray":
             case "parr": {

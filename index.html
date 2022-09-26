@@ -67,6 +67,13 @@
                         <td>incon <br />spl of value SomeRandomSplit 0 #output is back to default 1 line</td>
                     </tr>
                     <tr>
+                        <td>expect</td>
+                        <td></td>
+                        <td>building links</td>
+                        <td>prevents the processor from finishing initialization if the provided links aren't valid</td>
+                        <td>expect switch1 display1 message1</td>
+                    </tr>
+                    <tr>
                         <td>spl*</td>
                         <td>new</td>
                         <td>target variable name, reference name, bitcounts...</td>
@@ -160,8 +167,8 @@
                     <tr>
                         <td></td>
                         <td>await</td>
-                        <td>condition</td>
-                        <td>causes the processor to loop until @unit's flag meets the specified condition</td>
+                        <td>(condition), flag value, (intermediary function calls...)</td>
+                        <td>causes the processor to loop until @unit's flag meets the specified condition ("equal" by default)</td>
                         <td>set signal 6942069420<br />uflag signal<br />uflag await not signal<br /># this is how to do the network</td>
                     </tr>
                     <tr>
