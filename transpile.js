@@ -359,19 +359,34 @@ function processSegmentsToOutput(segments) {
                 }
                 break;
             }
+            case "ucontrol": {
+                if (segments[1] == "getblock") {
+                    output = "ucontrol getBlock";
+                    for (let i = 2; i < segments.length; i++) {
+                        output += " " + segments[i];
+                    }
+                }
+                break;
+            }
             case "spl": {
                 switch (segments[1]) {
                     case "new": {
                         let mlogName = segments[2];
                         let bitwName = segments[3];
                         let bitranges = [];
-                        for (let i = 3; i < segments.length; i++) {
+                        for (let i = 4; i < segments.length; i++) {
                             bitranges.push(segments[i] * 1);
                         }
                         compileTimeVariables.splitters.set(bitwName, {
                             ref: mlogName,
                             bitranges: bitranges
                         });
+                        output = {
+                            header: "",
+                            contents: "",
+                            footer: "",
+                            data: ""
+                        };
                         break;
                     }
                     case "obtainf":
@@ -405,13 +420,13 @@ function processSegmentsToOutput(segments) {
                             "op mul _Internal_ " + bitrangeIndex + " 3\n" +
                             "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
                             let bitrange = splitterEntry.bitranges[i];
                             let mask = (BigInt(1) << BigInt(bitrange)) - BigInt(1);
-                            output =
+                            output +=
                                 "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
                                 "op and " + outputVariable + " " + outputVariable + " " + mask + "\n" +
-                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always";
+                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
                             skippedBits += bitrange;
                         }
 
@@ -729,7 +744,7 @@ function processSegmentsToOutput(segments) {
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ strictEqual _Internal_ " + flag + "\n" +
                                 "sensor _Internal_ @unit @controlled\n" +
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A_ always\n" +
-                                "_UFLAGGET" + compileTimeVariables + "B_:";
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "B_:";
                             compileTimeVariables.homogenousJumps++;
                         }
                         break;
