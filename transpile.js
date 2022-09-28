@@ -330,7 +330,7 @@ function processSegmentsToOutput(segments) {
             }
             case "printf":
             case "pf": {
-                output = "printflush" + segments[1];
+                output = "printflush " + segments[1];
                 break;
             }
             case "consistent":
@@ -430,6 +430,8 @@ function processSegmentsToOutput(segments) {
                             skippedBits += bitrange;
                         }
 
+                        output = output.substring(0, output.length - 1);
+                        output = output.substring(0, output.lastIndexOf("\n") + 1);
                         output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
                         compileTimeVariables.homogenousJumps++;
                         break;
@@ -443,7 +445,7 @@ function processSegmentsToOutput(segments) {
                             skippedBits += splitterEntry.bitranges[i];
                         }
 
-                        let mask = ~((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits);
+                        let mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
                         output = "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask;
                         break;
                     }
@@ -459,13 +461,15 @@ function processSegmentsToOutput(segments) {
 
                         for (let i = 0; i < splitterEntry.bitranges; i++) {
                             let bitrange = splitterEntry.bitranges[i];
-                            let mask = ~((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits);
+                            let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
                             output =
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
                                 "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
                             skippedBits += bitrange;
                         }
 
+                        output = output.substring(0, output.length - 1);
+                        output = output.substring(0, output.lastIndexOf("\n") + 1);
                         output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
                         compileTimeVariables.homogenousJumps++;
                         break;
@@ -480,7 +484,7 @@ function processSegmentsToOutput(segments) {
                             skippedBits += splitterEntry.bitranges[i];
                         }
 
-                        let mask = ~((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits);
+                        let mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
                         if (Number(inputValue) === NaN || compileTimeVariables.toggleConsistentLineCounts) {
                             output =
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
@@ -502,19 +506,22 @@ function processSegmentsToOutput(segments) {
                         let skippedBits = 0;
 
                         output =
-                            "op mul _Internal_ " + bitrangeIndex + " 3\n" +
+                            "op mul _Internal_ " + bitrangeIndex + " 4\n" +
                             "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
                             let bitrange = splitterEntry.bitranges[i];
-                            let mask = ~((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits);
-                            output =
+                            let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
+                            output +=
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
-                                "op shl _Internal_ " + inputValue + " " + splitterEntry.bitranges[bitrangeIndex] + "\n" +
-                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
+                                "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
+                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_\n" +
+                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
                             skippedBits += bitrange;
                         }
 
+                        output = output.substring(0, output.length - 1);
+                        output = output.substring(0, output.lastIndexOf("\n") + 1);
                         output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
                         compileTimeVariables.homogenousJumps++;
                         break;
