@@ -462,7 +462,7 @@ function processSegmentsToOutput(segments) {
                         for (let i = 0; i < splitterEntry.bitranges; i++) {
                             let bitrange = splitterEntry.bitranges[i];
                             let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
-                            output =
+                            output +=
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
                                 "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
                             skippedBits += bitrange;
@@ -485,10 +485,10 @@ function processSegmentsToOutput(segments) {
                         }
 
                         let mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
-                        if (Number(inputValue) === NaN || compileTimeVariables.toggleConsistentLineCounts) {
+                        if (Number.isNaN(Number(inputValue)) || compileTimeVariables.toggleConsistentLineCounts) {
                             output =
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
-                                "op shl _Internal_ " + inputValue + " " + splitterEntry.bitranges[bitrangeIndex] + "\n" +
+                                "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
                                 "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
                         } else {
                             inputValue = BigInt(inputValue) << BigInt(splitterEntry.bitranges[bitrangeIndex]);
@@ -718,40 +718,47 @@ function processSegmentsToOutput(segments) {
                             let unitType = segments[3];
                             let flag = segments[4];
                             let escapeConditions = "";
+                            let tail = "";
                             for (let i = 5; i + 1 < segments.length; i += 2) {
                                 let condition = segments[i];
                                 let rightSide = segments[i + 1];
-                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ " + condition + " @unit " + rightSide + "\n";
+                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_ " + condition + " @unit " + rightSide + "\n";
+                            }
+                            if (segments.length > 5) {
+                                tail = "_UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_:\n";
                             }
                             escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
                             output =
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A_:\n" +
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
-                                "sensor _Internal_ @unit @flag\n" +
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ strictEqual _Internal_ " + flag + "\n" +
                                 escapeConditions + // comes with a new line
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A_ always\n" +
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "B_:";
+                                "sensor _Internal_ @unit @flag\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ notEqual _Internal_ " + flag + "\n" +
+                                tail;
                             compileTimeVariables.homogenousJumps++;
                         } else {
                             let unitType = segments[2];
                             let flag = segments[3];
                             let escapeConditions = "";
+                            let tail = "";
                             for (let i = 4; i + 1 < segments.length; i += 2) {
                                 let condition = segments[i];
                                 let rightSide = segments[i + 1];
-                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ " + condition + " @unit " + rightSide + "\n";
+                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_ " + condition + " @unit " + rightSide + "\n";
+                            }
+                            if (segments.length > 4) {
+                                tail = "_UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_:\n";
                             }
                             escapeConditions = escapeConditions.substring(0, escapeConditions.length - 1);
                             output =
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "A_:\n" +
+                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
-                                "sensor _Internal_ @unit @flag\n" +
                                 escapeConditions + // comes with a new line
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "B_ strictEqual _Internal_ " + flag + "\n" +
                                 "sensor _Internal_ @unit @controlled\n" +
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "A_ always\n" +
-                                "_UFLAGGET" + compileTimeVariables.homogenousJumps + "B_:";
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ equal _Internal_ 1\n" +
+                                "sensor _Internal_ @unit @flag\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ notEqual _Internal_ " + flag + "\n" +
+                                tail;
                             compileTimeVariables.homogenousJumps++;
                         }
                         break;
