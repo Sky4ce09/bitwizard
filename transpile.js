@@ -468,8 +468,8 @@ function processSegmentsToOutput(segments) {
                             skippedBits += bitrange;
                         }
 
-                        output = output.substring(0, output.length - 1);
-                        output = output.substring(0, output.lastIndexOf("\n") + 1);
+                        output += output.substring(0, output.length - 1);
+                        output += output.substring(0, output.lastIndexOf("\n") + 1);
                         output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
                         compileTimeVariables.homogenousJumps++;
                         break;
