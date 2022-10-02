@@ -1,1 +1,0 @@
-tooltipsEnabled = true;
