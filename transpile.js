@@ -459,7 +459,7 @@ function processSegmentsToOutput(segments) {
                             "op mul _Internal_ " + bitrangeIndex + " 2\n" +
                             "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges; i++) {
+                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
                             let bitrange = splitterEntry.bitranges[i];
                             let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
                             output +=
