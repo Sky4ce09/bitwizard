@@ -491,7 +491,7 @@ function processSegmentsToOutput(segments) {
                                 "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
                                 "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
                         } else {
-                            inputValue = BigInt(inputValue) << BigInt(splitterEntry.bitranges[bitrangeIndex]);
+                            inputValue = BigInt(inputValue) << BigInt(skippedBits);
                             output =
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
                                 "op add " + splitterEntry.ref + " " + splitterEntry.ref + " " + inputValue;
@@ -626,7 +626,7 @@ function processSegmentsToOutput(segments) {
                 break;
             }
             case "next": {
-                let loopData = compileTimeVariables.recentLoops[compileTimeVariables.recentLoops.length - 1];
+                let loopData = compileTimeVariables.recentLoops.pop();
                 let leftSide = loopData.leftSide;
                 let condition = loopData.condition;
                 let rightSide = loopData.rightSide;
