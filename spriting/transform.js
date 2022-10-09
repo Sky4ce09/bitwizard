@@ -87,8 +87,8 @@ function canvasDrawContent(itf) {
                     simcon.lineWidth = d.b;
 
                     let line = new Path2D();
-                    line.moveTo(d.x1, ch - d.y1);
-                    line.lineTo(d.x2, ch - d.y2);
+                    line.moveTo(d.x1 + 0.5, ch - d.y1 - 0.5);
+                    line.lineTo(d.x2 + 0.5, ch - d.y2 - 0.5);
 
                     for (let y = 0.5; y < itf.spriteHeight; y++) {
                         for (let x = 0.5; x < itf.spriteWidth; x++) {
