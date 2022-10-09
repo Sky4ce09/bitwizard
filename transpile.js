@@ -149,6 +149,9 @@ function transpile(input) {
         }
     }
     let output = tooltipsEnabled == true ? liveTooltip + "\n\n" : "";
+    if (compileTimeVariables.functionCount == 0) {
+        footer = []; // no trailing "end" when there are no functions
+    }
     for (let el of header) {
         output += el + "\n";
     }
@@ -280,7 +283,8 @@ function reset() {
         recentPointerArrays: [],
         recentFunctions:[],
         functions: new Map(),
-        splitters: new Map()
+        splitters: new Map(),
+        functionCount: 0
     };
     liveTooltip = "";
     header = [];
@@ -374,13 +378,24 @@ function processSegmentsToOutput(segments) {
                         let mlogName = segments[2];
                         let bitwName = segments[3];
                         let bitranges = [];
-                        for (let i = 4; i < segments.length; i++) {
-                            bitranges.push(segments[i] * 1);
+                        if (segments.length > 5) {
+                            for (let i = 4; i < segments.length; i++) {
+                                bitranges.push(segments[i] * 1);
+                            }
+                            compileTimeVariables.splitters.set(bitwName, {
+                                ref: mlogName,
+                                type: "custom",
+                                step: null,
+                                bitranges: bitranges
+                            });
+                        } else {
+                            compileTimeVariables.splitters.set(bitwName, {
+                                ref: mlogName,
+                                type: "algorithmic",
+                                step: segments[4],
+                                bitranges: null
+                            });
                         }
-                        compileTimeVariables.splitters.set(bitwName, {
-                            ref: mlogName,
-                            bitranges: bitranges
-                        });
                         output = {
                             header: "",
                             contents: "",
@@ -395,11 +410,17 @@ function processSegmentsToOutput(segments) {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
                         let bitrangeIndex = segments[4] * 1;
                         let skippedBits = 0;
-                        for (let i = 0; i < bitrangeIndex; i++) {
-                            skippedBits += splitterEntry.bitranges[i];
+                        let mask;
+                        if (splitterEntry.type == "custom") {
+                            for (let i = 0; i < bitrangeIndex; i++) {
+                                skippedBits += splitterEntry.bitranges[i];
+                            }
+                            mask = (BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1);
+                        } else {
+                            skippedBits = splitterEntry.step * bitrangeIndex;
+                            mask = (BigInt(1) << BigInt(splitterEntry.step)) - BigInt(1);
                         }
 
-                        let mask = (BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1);
                         if (skippedBits != 0 || compileTimeVariables.toggleConsistentLineCounts) {
                             output =
                                 "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
@@ -413,27 +434,37 @@ function processSegmentsToOutput(segments) {
                     case "od": {
                         let outputVariable = segments[2];
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
-                        let bitrangeIndex = segments[4];
-                        let skippedBits = 0;
+                        if (splitterEntry.type == "custom") {
+                            let bitrangeIndex = segments[4];
+                            let skippedBits = 0;
 
-                        output =
-                            "op mul _Internal_ " + bitrangeIndex + " 3\n" +
-                            "op add @counter @counter _Internal_\n";
+                            output =
+                                "op mul _Internal_ " + bitrangeIndex + " 3\n" +
+                                "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
-                            let bitrange = splitterEntry.bitranges[i];
-                            let mask = (BigInt(1) << BigInt(bitrange)) - BigInt(1);
-                            output +=
-                                "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
-                                "op and " + outputVariable + " " + outputVariable + " " + mask + "\n" +
-                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
-                            skippedBits += bitrange;
+                            for (let i = 0; i < splitterEntry.bitranges.length; i++) {
+                                let bitrange = splitterEntry.bitranges[i];
+                                let mask = (BigInt(1) << BigInt(bitrange)) - BigInt(1);
+                                output +=
+                                    "op shr " + outputVariable + " " + splitterEntry.ref + " " + skippedBits + "\n" +
+                                    "op and " + outputVariable + " " + outputVariable + " " + mask + "\n" +
+                                    "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
+                                skippedBits += bitrange;
+                            }
+
+                            output = output.substring(0, output.length - 1);
+                            output = output.substring(0, output.lastIndexOf("\n") + 1);
+                            output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                            compileTimeVariables.homogenousJumps++;
+                        } else { // algorithmic shift for homogenous bitranges
+                            let step = splitterEntry.step;
+                            let shift = segments[4];
+                            let mask = (BigInt(1) << BigInt(step)) - BigInt(1);
+                            output =
+                                "op mul _Internal_ " + step + " " + shift + "\n" +
+                                "op shr " + outputVariable + " " + splitterEntry.ref + " _Internal_\n" +
+                                "op and " + outputVariable + " " + outputVariable + " " + mask;
                         }
-
-                        output = output.substring(0, output.length - 1);
-                        output = output.substring(0, output.lastIndexOf("\n") + 1);
-                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
-                        compileTimeVariables.homogenousJumps++;
                         break;
                     }
                     case "clearf":
@@ -441,37 +472,55 @@ function processSegmentsToOutput(segments) {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
                         let bitrangeIndex = segments[3] * 1;
                         let skippedBits = 0;
-                        for (let i = 0; i < bitrangeIndex; i++) {
-                            skippedBits += splitterEntry.bitranges[i];
+                        let mask;
+
+                        if (splitterEntry.type = "custom") {
+                            for (let i = 0; i < bitrangeIndex; i++) {
+                                skippedBits += splitterEntry.bitranges[i];
+                            }
+                            mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
+                        } else {
+                            skippedBits = splitterEntry.step * bitrangeIndex;
+                            mask = ~(((BigInt(1) << BigInt(splitterEntry.step)) - BigInt(1)) << BigInt(skippedBits));
                         }
 
-                        let mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
                         output = "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask;
                         break;
                     }
                     case "cleard":
                     case "cd": {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
-                        let bitrangeIndex = segments[3];
-                        let skippedBits = 0;
+                        if (splitterEntry.type == "custom") {
+                            let bitrangeIndex = segments[3];
+                            let skippedBits = 0;
 
-                        output =
-                            "op mul _Internal_ " + bitrangeIndex + " 2\n" +
-                            "op add @counter @counter _Internal_\n";
+                            output =
+                                "op mul _Internal_ " + bitrangeIndex + " 2\n" +
+                                "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
-                            let bitrange = splitterEntry.bitranges[i];
-                            let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
-                            output +=
-                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
-                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
-                            skippedBits += bitrange;
+                            for (let i = 0; i < splitterEntry.bitranges.length; i++) {
+                                let bitrange = splitterEntry.bitranges[i];
+                                let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
+                                output +=
+                                    "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                    "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
+                                skippedBits += bitrange;
+                            }
+
+                            output += output.substring(0, output.length - 1);
+                            output += output.substring(0, output.lastIndexOf("\n") + 1);
+                            output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                            compileTimeVariables.homogenousJumps++;
+                        } else { // algorithmic shift for homogenous bitranges
+                            let step = splitterEntry.step;
+                            let shift = segments[3];
+                            let mask = (BigInt(1) << BigInt(step)) - BigInt(1); // this gets shifted during runtime
+                            output =
+                                "op mul _Internal_ " + step + " " + shift + "\n" +
+                                "op shl _Internal_ " + mask + " _Internal_\n" +
+                                "op not _Internal_ _Internal_\n" +
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
                         }
-
-                        output += output.substring(0, output.length - 1);
-                        output += output.substring(0, output.lastIndexOf("\n") + 1);
-                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
-                        compileTimeVariables.homogenousJumps++;
                         break;
                     }
                     case "writef":
@@ -480,11 +529,16 @@ function processSegmentsToOutput(segments) {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
                         let bitrangeIndex = segments[4] * 1;
                         let skippedBits = 0;
-                        for (let i = 0; i < bitrangeIndex; i++) {
-                            skippedBits += splitterEntry.bitranges[i];
+                        let mask;
+                        if (splitterEntry.type == "custom") {
+                            for (let i = 0; i < bitrangeIndex; i++) {
+                                skippedBits += splitterEntry.bitranges[i];
+                            }
+                            mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
+                        } else {
+                            skippedBits = splitterEntry.step * bitrangeIndex;
+                            mask = ~(((BigInt(1) << BigInt(splitterEntry.step)) - BigInt(1)) << BigInt(skippedBits));
                         }
-
-                        let mask = ~(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits));
                         if (Number.isNaN(Number(inputValue)) || compileTimeVariables.toggleConsistentLineCounts) {
                             output =
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
@@ -502,28 +556,47 @@ function processSegmentsToOutput(segments) {
                     case "wd": {
                         let inputValue = segments[2];
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
-                        let bitrangeIndex = segments[4];
-                        let skippedBits = 0;
+                        if (splitterEntry.type == "custom") {
+                            let bitrangeIndex = segments[4];
+                            let skippedBits = 0;
 
-                        output =
-                            "op mul _Internal_ " + bitrangeIndex + " 4\n" +
-                            "op add @counter @counter _Internal_\n";
+                            output =
+                                "op mul _Internal_ " + bitrangeIndex + " 4\n" +
+                                "op add @counter @counter _Internal_\n";
 
-                        for (let i = 0; i < splitterEntry.bitranges.length; i++) {
-                            let bitrange = splitterEntry.bitranges[i];
-                            let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
-                            output +=
-                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
-                                "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
-                                "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_\n" +
-                                "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
-                            skippedBits += bitrange;
+                            for (let i = 0; i < splitterEntry.bitranges.length; i++) {
+                                let bitrange = splitterEntry.bitranges[i];
+                                let mask = ~(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits));
+                                output +=
+                                    "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
+                                    "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
+                                    "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_\n" +
+                                    "jump _HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_ always\n";
+                                skippedBits += bitrange;
+                            }
+
+                            output = output.substring(0, output.length - 1);
+                            output = output.substring(0, output.lastIndexOf("\n") + 1);
+                            output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
+                            compileTimeVariables.homogenousJumps++;
+                        } else { // algorithmic shift for homogenous bitranges
+                            let step = splitterEntry.step;
+                            let shift = segments[4];
+                            let mask = (BigInt(1) << BigInt(step)) - BigInt(1); // this gets shifted during runtime
+                            output =
+                                ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op mul _Internal1_ " + step + " " + shift + "\n" : "") +
+                                ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op shl _Internal2_ " + mask + " _Internal1_\n" : "op shl _Internal2_ " + mask + " " + shift + "\n") +
+                                "op not _Internal2_ _Internal2_\n" +
+                                "op and " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal2_\n";
+                            if (compileTimeVariables.toggleConsistentLineCounts || shift != 0) {
+                                output +=
+                                    ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op shl _Internal2_ " + inputValue + " _Internal1_\n" : "op shl _Internal2_ " + inputValue + " " + shift + "\n") +
+                                    "op add " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal2_";
+                            } else {
+                                output +=
+                                    "op add " + splitterEntry.ref + " " + splitterEntry.ref + " " + inputValue;
+                            }
                         }
-
-                        output = output.substring(0, output.length - 1);
-                        output = output.substring(0, output.lastIndexOf("\n") + 1);
-                        output += "_HOMOGENOUSJUMP" + compileTimeVariables.homogenousJumps + "_:";
-                        compileTimeVariables.homogenousJumps++;
                         break;
                     }
                 }
@@ -644,6 +717,7 @@ function processSegmentsToOutput(segments) {
                     case "new": {
                         compileTimeVariables.recentFunctions.push(segments[2]);
                         compileTimeVariables.functions.set(segments[2], "exists");
+                        compileTimeVariables.functionCount++;
                         output = {
                             header: "",
                             contents: "",
