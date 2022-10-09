@@ -462,7 +462,7 @@ function generateOutput() {
             out += el.toCode();
         }
     }
-    out += "set @counter " + spriteName + "_CB\n" + spriteName + "BRIDGE:\nnoop\n"
+    out += "set @counter " + spriteName + "_CB\n" + spriteName + "BRIDGE:\n"
     outMlogData.innerHTML = out;
 
     resetCTV();
