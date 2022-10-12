@@ -74,6 +74,7 @@ class Interface {
 
 function canvasDrawContent(itf) {
     itf.ctx.scale(itf.pixelSize, itf.pixelSize);
+    itf.ctx.lineCap = "butt";
     let ch = itf.spriteHeight;
     for (let el of itf.contents) {
         let color = el.splitColor();
@@ -84,6 +85,7 @@ function canvasDrawContent(itf) {
             itf.ctx.lineWidth = 0;
             switch (d.mode) {
                 case "line": // yeah no, i'm fucked
+                    itf.ctx.lineCap = "round";
                     simcon.lineWidth = d.b;
 
                     let line = new Path2D();
