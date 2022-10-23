@@ -377,23 +377,62 @@ function processSegmentsToOutput(segments) {
                 }
                 break;
             }
+            case "print": {
+                if ((segments[1][0] == "'" || segments[1][0] == '"') && segments[1][segments[1].length - 1] == segments[1][0] && segments[1].length > 1) {
+                    output = "print " + segments[1] + " # Length: " + (segments[1].length - 2);
+                }
+                break;
+            }
             case "spl": {
                 switch (segments[1]) {
                     case "new": {
                         let mlogName = segments[2];
                         let bitwName = segments[3];
                         let bitranges = [];
-                        if (segments[5] == "*" || segments.length == 5) {
+                        if (segments[5] == "*") {
+                            let labels = new Map();
+                            for (let i = 6; i < segments.length; i++) {
+                                if (segments[i].indexOf(":") != -1) {
+                                    let subsegments = segments[i].split(":");
+                                    let key = null;
+                                    let value = null;
+                                    if (Number.isNaN(Number(subsegments[0]))) {
+                                        key = 0; value = 1;
+                                    } else if (Number.isNaN(Number(subsegments[1]))) {
+                                        key = 1; value = 0;
+                                    }
+                                    if (key != null) {
+                                        labels.set(subsegments[key], subsegments[value] * 1);
+                                    }
+                                }
+                            }
                             compileTimeVariables.splitters.set(bitwName, {
                                 ref: mlogName,
                                 type: "algorithmic",
                                 step: segments[4],
                                 bitranges: null,
-                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(63 / segments[4]))
+                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(63 / segments[4])),
+                                labels: labels
                             });
                         } else {
+                            let labels = new Map();
                             for (let i = 4; i < segments.length; i++) {
-                                bitranges.push(segments[i] * 1);
+                                if (segments[i].indexOf(":") != -1) {
+                                    let subsegments = segments[i].split(":");
+                                    let key = null;
+                                    let value = null;
+                                    if (Number.isNaN(Number(subsegments[0]))) {
+                                        key = 0; value = 1;
+                                    } else if (Number.isNaN(Number(subsegments[1]))) {
+                                        key = 1; value = 0;
+                                    }
+                                    if (key != null && value != null) {
+                                        labels.set(subsegments[key], i - 4);
+                                        bitranges.push(subsegments[value] * 1)
+                                    }
+                                } else {
+                                    bitranges.push(segments[i] * 1);
+                                }
                             }
                             compileTimeVariables.splitters.set(bitwName, {
                                 ref: mlogName,
@@ -402,7 +441,8 @@ function processSegmentsToOutput(segments) {
                                 bitranges: bitranges,
                                 obtainFunctionCreated: false,
                                 clearFunctionCreated: false,
-                                writeFunctionCreated: false
+                                writeFunctionCreated: false,
+                                labels: labels
                             });
                         }
                         output = {
@@ -417,7 +457,8 @@ function processSegmentsToOutput(segments) {
                     case "of": {
                         let outputVariable = segments[2];
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
-                        let bitrangeIndex = segments[4] * 1;
+                        let bitrangeIndex = Number.isNaN(Number(segments[4])) ? splitterEntry.labels.get(segments[4]) * 1 : segments[4] * 1;
+                        console.log(splitterEntry.labels, bitrangeIndex);
                         let skippedBits = 0;
                         let mask;
                         if (splitterEntry.type == "custom") {
@@ -495,7 +536,7 @@ function processSegmentsToOutput(segments) {
                     case "clearf":
                     case "cf": {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
-                        let bitrangeIndex = segments[3] * 1;
+                        let bitrangeIndex = Number.isNaN(Number(segments[3])) ? splitterEntry.labels.get(segments[3]) * 1 : segments[4] * 1;
                         let skippedBits = 0;
                         let mask;
 
@@ -568,7 +609,7 @@ function processSegmentsToOutput(segments) {
                     case "wf": {
                         let inputValue = segments[2];
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
-                        let bitrangeIndex = segments[4] * 1;
+                        let bitrangeIndex = Number.isNaN(Number(segments[4])) ? splitterEntry.labels.get(segments[4]) * 1 : segments[4] * 1;
                         let skippedBits = 0;
                         let mask;
                         if (splitterEntry.type == "custom") {
