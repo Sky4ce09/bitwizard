@@ -15,6 +15,12 @@
     <section>
         <article>
             <h3 style="color: white; font-family: arial, sans-serif">bitwizard simplified bit manipulation & other tools for mindustry logic // mixed mlog and custom ops</h3>
+            <p style="color: white; font-family: arial, sans-serif">Important information:</p>
+            <ul style="color: lightgray; font-family: arial, sans-serif">
+                <li>The comment character "#" must be escaped with a "\" prefix to be used outside the commenting context</li>
+            </ul>
+        </article>
+        <article>
             <table>
                 <tbody style="color: white">
                     <tr>
@@ -100,6 +106,13 @@
                         <td></td>
                         <td>label functionality jr: give your bitranges names, this time by index</td>
                         <td>spl new bytes Bytes 8 * 4 0:byte1 2:byte3 3:byte4</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>label</td>
+                        <td>splitter reference, labels...</td>
+                        <td>you can also set the labels in a separate line if you like, good for managing a LOT of wordy labels on multiple lines</td>
+                        <td>spl new moreAndMoreBits MoreAndMoreBits 1 2 3 4 5 6 7 8 9 10<br />spl label MoreAndMoreBits 0:OneBit 1:TwoBits 2:ThreeBits 3:FourBits 4:FiveBits<br />spl label MoreAndMoreBits 5:SixBits 6:SevenBits 7:EightBits 8:NineBits 9:TenBits</td>
                     </tr>
                     <tr>
                         <td></td>

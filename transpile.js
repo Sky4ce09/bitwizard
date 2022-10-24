@@ -329,6 +329,34 @@ function algoSplitterAccessCheck(splitter, index) {
 }
 
 function processSegmentsToOutput(segments) {
+    // remove all segments within a comment
+    let removeSegments = false;
+    for (let i = 0; i < segments.length; i++) {
+        if (removeSegments) {
+            segments.pop();
+            i--;
+        }
+        let potentialCommentIndices = [];
+        for (let j = 0; j < segments[i].length; j++) {
+            if (segments[i][j] == "#") {
+                potentialCommentIndices.push(j);
+            }
+        }
+        for (let el of potentialCommentIndices) {
+            if (el == 0) {
+                removeSegments = true;
+                segments.splice(i, 1);
+                i--;
+                break;
+            } else if (segments[i][el - 1] != "\\") {
+                segments[i] = segments[i].substring(0, el);
+                removeSegments = true;
+            } else {
+                segments[i] = segments[i].substring(0, el) + segments[i].substring(el + 1);
+            }
+        }
+    }
+
     let output;
     try {
         switch (segments[0]) {
@@ -444,6 +472,32 @@ function processSegmentsToOutput(segments) {
                                 writeFunctionCreated: false,
                                 labels: labels
                             });
+                        }
+                        output = {
+                            header: "",
+                            contents: "",
+                            footer: "",
+                            data: ""
+                        };
+                        break;
+                    }
+                    case "label": {
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
+                        let labels = splitterEntry.labels;
+                        for (let i = 3; i < segments.length; i++) {
+                            if (segments[i].indexOf(":") != -1) {
+                                let subsegments = segments[i].split(":");
+                                let key = null;
+                                let value = null;
+                                if (Number.isNaN(Number(subsegments[0]))) {
+                                    key = 0; value = 1;
+                                } else if (Number.isNaN(Number(subsegments[1]))) {
+                                    key = 1; value = 0;
+                                }
+                                if (key != null && value != null) {
+                                    labels.set(subsegments[key], subsegments[value]);
+                                }
+                            }
                         }
                         output = {
                             header: "",
