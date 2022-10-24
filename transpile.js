@@ -284,6 +284,7 @@ function reset() {
         recentFunctions:[],
         functions: new Map(),
         splitters: new Map(),
+        memoryLabelMaps: new Map(),
         functionCount: 0
     };
     liveTooltip = "";
@@ -408,6 +409,42 @@ function processSegmentsToOutput(segments) {
             case "print": {
                 if ((segments[1][0] == "'" || segments[1][0] == '"') && segments[1][segments[1].length - 1] == segments[1][0] && segments[1].length > 1) {
                     output = "print " + segments[1] + " # Length: " + (segments[1].length - 2);
+                }
+                break;
+            }
+            case "memorylabel":
+            case "memlabel": {
+                let memoryBlockReference = segments[1];
+                let labels = new Map();
+                for (let i = 2; i < segments.length; i++) {
+                    if (segments[i].indexOf(":") != -1) {
+                        let subsegments = segments[i].split(":");
+                        let key = null;
+                        let value = null;
+                        if (Number.isNaN(Number(subsegments[0]))) {
+                            key = 0; value = 1;
+                        } else if (Number.isNaN(Number(subsegments[1]))) {
+                            key = 1; value = 0;
+                        }
+                        if (key != null) {
+                            labels.set(subsegments[key], subsegments[value] * 1);
+                        }
+                    }
+                }
+                output = {
+                    header: "",
+                    contents: "",
+                    footer: "",
+                    data: ""
+                };
+                compileTimeVariables.memoryLabelMaps.set(memoryBlockReference, labels);
+                break;
+            }
+            case "read":
+            case "write": {
+                let index = compileTimeVariables.memoryLabelMaps.get(segments[2]).get(segments[3]);
+                if (typeof index == "number") {
+                    output = segments[0] + " " + segments[1] + " " + segments[2] + " " + index;
                 }
                 break;
             }
