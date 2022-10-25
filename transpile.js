@@ -361,6 +361,12 @@ function processSegmentsToOutput(segments) {
     let output;
     try {
         switch (segments[0]) {
+            case "jump": {
+                if (segments.length == 2) {
+                    output = segments[0] + " " + segments[1] + " always"
+                }
+                break;
+            }
             case "drawf":
             case "df": {
                 output = "drawflush " + segments[1];
