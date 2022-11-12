@@ -167,7 +167,14 @@ function transpile(input) {
     for (let el of data) {
         output += el + "\n";
     }
-    return output;
+    outputLines = output.split("\n");
+    let lineCount = 0;
+    for (let el of outputLines) {
+        if (el[0] != "#" && el != "" && (el[el.length - 1] != ":" || el.split(" ").length == 1)) {
+            lineCount++;
+        }
+    }
+    return output + "\n# Line count: " + lineCount;
 }
 
 class Description {
