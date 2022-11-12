@@ -167,10 +167,15 @@ function transpile(input) {
     for (let el of data) {
         output += el + "\n";
     }
+    while (output.indexOf(" \n") != -1) {
+        output = output.substring(0, output.indexOf(" \n")) + "\n" + output.substring(output.indexOf(" \n") + 2);
+        console.log("compressed");
+    }
     outputLines = output.split("\n");
     let lineCount = 0;
     for (let el of outputLines) {
-        if (el[0] != "#" && el != "" && (el[el.length - 1] != ":" || el.split(" ").length == 1)) {
+        if (!(el[0] == "#" || el == "" || (el[el.length - 1] == ":" && el.split(" ").length == 1))) {
+            console.log(el);
             lineCount++;
         }
     }
@@ -1127,35 +1132,42 @@ function processSegmentsToOutput(segments) {
             }
             case "parray":
             case "parr": {
-                let pointerAmount = segments[1] * 1;
-                output = "op add @counter @counter " + segments[2];
-                for (let i = 0; i < pointerAmount; i++) {
-                    output += "\njump _BRANCHPARRAY" + compileTimeVariables.homogenousJumps + "-" + i + "_ always";
-                }
-                output += "\n_BRANCHPARRAY" + compileTimeVariables.homogenousJumps + "-0_:"
-                if (pointerAmount > 1) {
-                    compileTimeVariables.recentPointerArrays.push({
-                        identification: compileTimeVariables.homogenousJumps,
-                        closedCases: 1, // is one after automatic first case closure
-                        openCases: pointerAmount
-                    });
-                } else {
-                    out += "\n#You don't need this pointer array..."
-                }
+                output = "op add @counter @counter " + segments[1] + " # P" + compileTimeVariables.homogenousJumps; // comment for identification
+                compileTimeVariables.recentPointerArrays.push({
+                    identification: compileTimeVariables.homogenousJumps,
+                    variable: segments[1],
+                    caseCount: 0
+                });
+                compileTimeVariables.homogenousJumps++;
                 break;
             }
             case "/": {
+                let search = compileTimeVariables.linesWithinFunction ? data : contents;
                 let parrayData = compileTimeVariables.recentPointerArrays[compileTimeVariables.recentPointerArrays.length - 1];
-                if (parrayData.openCases <= 1) {
-                    output = "_MERGEPARRAY" + parrayData.identification + "_:";
-                    compileTimeVariables.recentPointerArrays.pop();
-                } else {
-                    output =
-                        "jump _MERGEPARRAY" + parrayData.identification + "_ always\n" +
-                        "_BRANCHPARRAY" + parrayData.identification + "-" + parrayData.closedCases + "_:"
-                    parrayData.closedCases++;
-                    parrayData.openCases--;
+                let insertIndex;
+                for (let ln = 0; ln < search.length; ln++) {
+                    if (search[ln].indexOf("op add @counter @counter " + parrayData.variable + " # P" + parrayData.identification) == 0) {
+                        insertIndex = ln + parrayData.caseCount + 1;
+                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + " always");
+                        parrayData.caseCount++;
+                    }
                 }
+                output = "jump _MERGEPARRAY" + parrayData.identification + "_ always\n_BRANCHPARRAY"  + parrayData.identification + "-" + parrayData.caseCount + "_:"
+                break;
+            }
+            case "//": {
+                let search = compileTimeVariables.linesWithinFunction ? data : contents;
+                let parrayData = compileTimeVariables.recentPointerArrays[compileTimeVariables.recentPointerArrays.length - 1];
+                let insertIndex;
+                for (let ln = 0; ln < search.length; ln++) {
+                    if (search[ln].indexOf("op add @counter @counter " + parrayData.variable + " # P" + parrayData.identification) == 0) {
+                        insertIndex = ln + parrayData.caseCount + 1;
+                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + " always\n_BRANCHPARRAY" + parrayData.identification + "-0_:");
+                        parrayData.caseCount++;
+                    }
+                }
+                output = "_MERGEPARRAY" + parrayData.identification + "_:";
+                compileTimeVariables.recentPointerArrays.pop();
                 break;
             }
         }

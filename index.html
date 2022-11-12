@@ -257,16 +257,23 @@
                     <tr>
                         <td>parray</td>
                         <td></td>
-                        <td>constant pointer count, value</td>
-                        <td>create a pointer array (note that these pile to a lot of instructions)</td>
+                        <td>variable (used as index)</td>
+                        <td>create a pointer array</td>
                         <td>parray 8 a</td>
                     </tr>
                     <tr>
                         <td>/</td>
                         <td></td>
                         <td></td>
-                        <td>close one case of a pointer array</td>
-                        <td>parr 2 fruit<br />set x "apple"<br />/<br />set x "orange"<br />/</td>
+                        <td>close one case of a pointer array that isn't the last case</td>
+                        <td>parr 2 fruit<br />set x "apple"<br />/<br />set x "orange"<br />//</td>
+                    </tr>
+                    <tr>
+                        <td>//</td>
+                        <td></td>
+                        <td></td>
+                        <td>close the last case of a pointer array (defines the size of it)</td>
+                        <td>parr 2 car<br />set x "King Kai's car"<br />/<br />set x "some burning Tesla vehicle in China"<br />//</td>
                     </tr>
                     <tr>
                         <td>for</td>
