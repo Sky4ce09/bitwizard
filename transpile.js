@@ -169,13 +169,11 @@ function transpile(input) {
     }
     while (output.indexOf(" \n") != -1) {
         output = output.substring(0, output.indexOf(" \n")) + "\n" + output.substring(output.indexOf(" \n") + 2);
-        console.log("compressed");
     }
     outputLines = output.split("\n");
     let lineCount = 0;
     for (let el of outputLines) {
         if (!(el[0] == "#" || el == "" || (el[el.length - 1] == ":" && el.split(" ").length == 1))) {
-            console.log(el);
             lineCount++;
         }
     }
@@ -578,7 +576,6 @@ function processSegmentsToOutput(segments) {
                         let outputVariable = segments[2];
                         let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
                         let bitrangeIndex = Number.isNaN(Number(segments[4])) ? splitterEntry.labels.get(segments[4]) * 1 : segments[4] * 1;
-                        console.log(splitterEntry.labels, bitrangeIndex);
                         let skippedBits = 0;
                         let mask;
                         if (splitterEntry.type == "custom") {
@@ -1215,6 +1212,15 @@ function processSegmentsToOutput(segments) {
         } else {
             for (let el of segments) {
                 output.contents += el + " ";
+            }
+        }
+    } else if (typeof output == "string") {
+        if (compileTimeVariables.linesWithinFunction) {
+            output = {
+                header: "",
+                contents: "",
+                footer: "",
+                data: output
             }
         }
     }
