@@ -179,7 +179,7 @@ function transpile(input) {
             lineCount++;
         }
     }
-    return output + "\n# Line count: " + lineCount;
+    return output + "\n# Line count: " + lineCount + (compileTimeVariables.recentPointerArrays.length == 0 ? "" : "\n# Unclosed pointer arrays: " + compileTimeVariables.recentPointerArrays.length);
 }
 
 class Description {
@@ -255,7 +255,8 @@ let descriptions = [
     new Description(["for"], "variable (, initialization), condition, value:double, increment", "Initializes a loop."),
     new Description(["next"], "", "Closes the most recently initialized loop."),
     new Description(["parray", "parr"], "sourcevalue, value:double", "Creates a pointer array with the ."),
-    new Description(["/"], "", "Closes one pointer's case of a pointer array."),
+    new Description(["/"], "", "Closes a case of a pointer array."),
+    new Description(["//"], "", "Closes the last case of a pointer array, defining its size."),
     new Description(["log2"], "variable, value:double", "Calculates the base 2 logarithm of a number."),
     new Description(["define", "def"], "number", "Implements various number definitions."),
     new Description(["uflag"], "unittype/uflagoperation", "Flag the currently bound unit with shorter syntax or perform checks and actions on it."),
@@ -311,7 +312,7 @@ function processSegmentsToTooltip(segments) {
 
     let currentDocs = false;
     if (segments.length <= 1) {
-        let tooltip = "#Available instructions:\n#";
+        let tooltip = "# Available instructions:\n#";
         for (let el of descriptions) {
             tooltip += el.getNames() + ", "
         }
@@ -323,12 +324,12 @@ function processSegmentsToTooltip(segments) {
             if (currentDocs.branches.length > 0) {
                 currentDocs = currentDocs.browseBranches(segments[i]);
             } else {
-                return "#Bitwizard does not (yet) recognize this."
+                return "# Bitwizard does not (yet) recognize this."
             }
         } else {
             currentDocs = descriptions.find(el => el.names.indexOf(segments[i]) != -1);
             if (currentDocs == undefined) {
-                return "#Bitwizard does not (yet) recognize this."
+                return "# Bitwizard does not (yet) recognize this."
             }
         }
     }
