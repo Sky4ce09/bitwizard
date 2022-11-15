@@ -150,7 +150,7 @@ function transpile(input) {
         }
     }
     let output = tooltipsEnabled == true ? liveTooltip + "\n\n" : "";
-    if (compileTimeVariables.functionCount == 0 && JSON.stringify(footer) != JSON.stringify(["end"])) {
+    if (compileTimeVariables.functionCount == 0 && JSON.stringify(footer) == JSON.stringify(["end"])) {
         footer = []; // no trailing "end" when there are no functions
     }
     for (let el of header) {
