@@ -1161,7 +1161,7 @@ function processSegmentsToOutput(segments) {
                 for (let ln = 0; ln < search.length; ln++) {
                     if (search[ln].indexOf("op add @counter @counter " + parrayData.variable + " # P" + parrayData.identification) == 0) {
                         insertIndex = ln + parrayData.caseCount + 1;
-                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + " always\n_BRANCHPARRAY" + parrayData.identification + "-0_:");
+                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + "_ always\n_BRANCHPARRAY" + parrayData.identification + "-0_:");
                         parrayData.caseCount++;
                     }
                 }
