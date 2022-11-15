@@ -870,7 +870,7 @@ function processSegmentsToOutput(segments) {
 
                 output = {
                     header: header.find(el => el.indexOf("op log LN16 16") != -1) == undefined ? "op log LN16 16" : "",
-                    contents: "op log _Internal_ " + inputValue + "\nop div " + outputVariable + " _Internal LN16",
+                    contents: "op log _Internal_ " + inputValue + "\nop div " + outputVariable + " _Internal_ LN16",
                     footer: "",
                     data: "",
                     unchangeable: false
