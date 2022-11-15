@@ -139,6 +139,7 @@ function transpile(input) {
 
         let tooltipOutput = (lineCount == lines.length - 1 && tooltipsEnabled) ? processSegmentsToTooltip(segments) : "";
         let codeOutput = processSegmentsToOutput(segments); // object with properties header, contents, footer and data
+        console.log(codeOutput);
 
         liveTooltip = tooltipOutput;
         if (typeof codeOutput == "string") { if (codeOutput != "") contents.push(codeOutput); } else {
@@ -149,7 +150,7 @@ function transpile(input) {
         }
     }
     let output = tooltipsEnabled == true ? liveTooltip + "\n\n" : "";
-    if (compileTimeVariables.functionCount == 0) {
+    if (compileTimeVariables.functionCount == 0 && JSON.stringify(footer) != JSON.stringify(["end"])) {
         footer = []; // no trailing "end" when there are no functions
     }
     for (let el of header) {
@@ -1146,7 +1147,7 @@ function processSegmentsToOutput(segments) {
                 for (let ln = 0; ln < search.length; ln++) {
                     if (search[ln].indexOf("op add @counter @counter " + parrayData.variable + " # P" + parrayData.identification) == 0) {
                         insertIndex = ln + parrayData.caseCount + 1;
-                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + " always");
+                        search.splice(insertIndex, 0, "jump _BRANCHPARRAY" + parrayData.identification + "-" + parrayData.caseCount + "_ always");
                         parrayData.caseCount++;
                     }
                 }
