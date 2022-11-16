@@ -706,7 +706,7 @@ function processSegmentsToOutput(segments) {
                                 let mask = "0x" + bnot(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits)).toString(16).toUpperCase();
                                 output.data +=
                                     "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask + "\n" +
-                                    "set @counter _SPL" + segments[3] + "CB_\n";
+                                    "set @counter _SPL" + segments[2] + "CB_\n";
                                 skippedBits += bitrange;
                             }
 
