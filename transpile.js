@@ -139,7 +139,6 @@ function transpile(input) {
 
         let tooltipOutput = (lineCount == lines.length - 1 && tooltipsEnabled) ? processSegmentsToTooltip(segments) : "";
         let codeOutput = processSegmentsToOutput(segments); // object with properties header, contents, footer and data
-        console.log(codeOutput);
 
         liveTooltip = tooltipOutput;
         if (typeof codeOutput == "string") { if (codeOutput != "") contents.push(codeOutput); } else {
@@ -373,6 +372,15 @@ function processSegmentsToOutput(segments) {
     let output;
     try {
         switch (segments[0]) {
+            case "debug":
+                console.log(compileTimeVariables);
+                output = {
+                    header: "",
+                    contents: "\# DEBUG MARK",
+                    footer: "",
+                    data: ""
+                };
+                break;
             case "jump": {
                 if (segments.length == 2) {
                     output = segments[0] + " " + segments[1] + " always"
@@ -1170,59 +1178,42 @@ function processSegmentsToOutput(segments) {
                 break;
             }
         }
-        if (typeof output === "string") {
-            if (compileTimeVariables.linesWithinFunction) {
-                output = {
-                    header: "",
-                    contents: "",
-                    footer: "",
-                    data: output
-                }
-            }
-        } else if (typeof output === "object") {
-            if (output.contents != "") {
-                if (compileTimeVariables.linesWithinFunction && output.unchangeable == false) {
-                    output = {
-                        header: output.header,
-                        contents: output.data,
-                        footer: output.footer,
-                        data: output.contents
-                    }
-                }
-            }
-        } else {
-            output = "";
-        };
     } catch (e) {
         output = "";
         for (let el of segments) {
             output += el + " ";
         }
     }
-    if (output == "" || output == "\n") {
-        output = {
-            header: "",
-            contents: "",
-            footer: "",
-            data: ""
-        };
-        if (compileTimeVariables.linesWithinFunction) {
+    switch (typeof output) {
+        case "undefined": {
+            let insert = "";
             for (let el of segments) {
-                output.data += el + " ";
-            }
-        } else {
-            for (let el of segments) {
-                output.contents += el + " ";
-            }
-        }
-    } else if (typeof output == "string") {
-        if (compileTimeVariables.linesWithinFunction) {
+                insert += el + " ";
+            };
             output = {
                 header: "",
-                contents: "",
+                contents: insert,
                 footer: "",
-                data: output
+                data: ""
             }
+            break;
+        }
+        case "string": {
+            output = {
+                header: "",
+                contents: output,
+                footer: "",
+                data: ""
+            }
+            break;
+        }
+    }
+    if (output.unchangeable != true && compileTimeVariables.linesWithinFunction) {
+        output = {
+            header: output.header,
+            contents: output.data,
+            footer: output.footer,
+            data: output.contents
         }
     }
     return output
