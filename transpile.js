@@ -1,6 +1,7 @@
 // call this Bitwizard 2.0
 
 let tooltipsEnabled = false;
+let debugEnabled = false;
 
 function lookupCondition(input) {
     switch (input) {
@@ -364,7 +365,7 @@ function processSegmentsToOutput(segments) {
                 segments[i] = segments[i].substring(0, el);
                 removeSegments = true;
             } else {
-                segments[i] = segments[i].substring(0, el) + segments[i].substring(el + 1);
+                segments[i] = segments[i].substring(0, el - 1) + segments[i].substring(el);
             }
         }
     }
@@ -946,7 +947,7 @@ function processSegmentsToOutput(segments) {
                             header: "",
                             contents: "",
                             footer: "",
-                            data: segments[2] + ":",
+                            data: segments[2] + ":" + (debugEnabled ? '\nset _DEBUG-FUN_ "' + segments[2] + '"' : ""),
                             unchangeable: true
                         };
                         compileTimeVariables.linesWithinFunction = true;
@@ -1209,6 +1210,22 @@ function processSegmentsToOutput(segments) {
         }
     }
     if (output.unchangeable != true && compileTimeVariables.linesWithinFunction) {
+        if (debugEnabled) {
+            let recentFunction = compileTimeVariables.recentFunctions[0];
+            let lines = output.contents.split("\n");
+            for (let l = 0; l < lines.length; l++) {
+                el = lines[l];
+                el = el + " \# Function " + recentFunction
+                lines[l] = el;
+            }
+            console.log(lines)
+            let newContents = "";
+            for (let el of lines) {
+                newContents += el + "\n";
+            }
+            newContents = newContents.substring(0, newContents.length - 1);
+            output.contents = newContents;
+        }
         output = {
             header: output.header,
             contents: output.data,
