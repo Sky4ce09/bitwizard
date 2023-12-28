@@ -24,7 +24,7 @@ function lookupCondition(input) {
         case ">=":
         case "greaterThanEq":
             return "greaterThanEq";
-        case "<":
+        case "<=":
         case "lessThanEq":
             return "lessThanEq";
         default:
@@ -52,7 +52,7 @@ function invertCondition(input) {
         case ">=":
         case "greaterThanEq":
             return "lessThan";
-        case "<":
+        case "<=":
         case "lessThanEq":
             return "greaterThan";
         default:
