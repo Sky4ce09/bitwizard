@@ -150,8 +150,8 @@ function transpile(input) {
         }
     }
     let output = tooltipsEnabled == true ? liveTooltip + "\n\n" : "";
-    if (compileTimeVariables.functionCount == 0 && JSON.stringify(footer) == JSON.stringify(["end"])) {
-        footer = []; // no trailing "end" when there are no functions
+    if (compileTimeVariables.functionCount > 0) {
+        footer = ["jump " + countLines(header) + " always"];
     }
     for (let el of header) {
         output += el + "\n";
@@ -209,7 +209,7 @@ class Description {
     browseBranches(branchString) {
         let branch = this.branches.find(el => el.names.indexOf(branchString != -1));
         if (branch == undefined) {
-            if (this.optionalBranch || this.branches.length == 0) { return "Bitwizard thinks you're on the right track." }
+            if (this.optionalBranch || this.branches.length == 0) { return "#Bitwizard thinks you're on the right track." }
             return "#Bitwizard does not (yet) recognize this."
         } else {
             return branch;
@@ -222,7 +222,7 @@ let standardValues = {
     number: new Description(["number"], "", "Also known as a double."),
     boolean: new Description(["boolean"], "", "True or false."),
     block: new Description(["block"], "", "A block in the game."),
-    unit: new Description(["boolean"], "", "A unit in the game."),
+    unit: new Description(["unit"], "", "A unit in the game."),
     source: new Description(["sourcevalue"], "", "A value that is not computed during runtime."),
 }
 
@@ -302,8 +302,19 @@ function reset() {
     liveTooltip = "";
     header = [];
     contents = [];
-    footer = ["end"];
+    footer = [];
     data = [];
+}
+
+function countLines(inputArray) {
+    let lineCount = 0;
+    for (let el of inputArray) {
+        let lines = el.split("\n");
+        for (let line of lines) {
+            lineCount += (line != "''" && line[0] != "#") ? 1 : 0;
+        }
+    }
+    return lineCount;
 }
 
 function processSegmentsToTooltip(segments) {
