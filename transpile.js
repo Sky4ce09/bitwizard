@@ -293,7 +293,7 @@ function reset() {
         recentTimers: [],
         recentLoops: [],
         recentPointerArrays: [],
-        recentFunctions:[],
+        recentFunctions: [],
         functions: new Map(),
         splitters: new Map(),
         memoryLabelMaps: new Map(),
@@ -1119,7 +1119,7 @@ function processSegmentsToOutput(segments) {
                         break;
                     }
                     case "verify": {
-                        if (compileTimeVariables.recentFunctions.get(segments[2]) == "exists") {
+                        if (compileTimeVariables.functions.get(segments[2]) == "exists") {
                             output =
                                 "sensor _Internal1_ @unit @controlled\n" +
                                 "sensor _Internal2_ @unit @dead\n" +
