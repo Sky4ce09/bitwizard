@@ -1032,7 +1032,7 @@ function processSegmentsToOutput(segments) {
                             for (let i = 5; i + 1 < segments.length; i += 2) {
                                 let condition = segments[i];
                                 let rightSide = segments[i + 1];
-                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_ " + condition + " @unit " + rightSide + "\n";
+                                escapeConditions += "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_ " + lookupCondition(condition) + " @unit " + rightSide + "\n";
                             }
                             if (segments.length > 5) {
                                 tail = "_UFLAGGET" + compileTimeVariables.homogenousJumps + "ESCAPE_:\n";
@@ -1042,7 +1042,7 @@ function processSegmentsToOutput(segments) {
                                 "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
                                 escapeConditions + // comes with a new line
-                                "sensor _Internal_ @unit @flag\n" +
+                                "\nsensor _Internal_ @unit @flag\n" +
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ notEqual _Internal_ " + flag + "\n" +
                                 tail;
                             compileTimeVariables.homogenousJumps++;
