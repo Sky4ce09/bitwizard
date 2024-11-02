@@ -524,7 +524,7 @@ function processSegmentsToOutput(segments) {
                                 type: "algorithmic",
                                 step: segments[4],
                                 bitranges: null,
-                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(63 / segments[4])),
+                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(53 / segments[4])),
                                 labels: labels
                             });
                         } else {
@@ -674,11 +674,11 @@ function processSegmentsToOutput(segments) {
                     case "clearf":
                     case "cf": {
                         let splitterEntry = compileTimeVariables.splitters.get(segments[2]);
-                        let bitrangeIndex = Number.isNaN(Number(segments[3])) ? splitterEntry.labels.get(segments[3]) * 1 : segments[4] * 1;
+                        let bitrangeIndex = Number.isNaN(Number(segments[3])) ? splitterEntry.labels.get(segments[3]) * 1 : segments[3] * 1;
                         let skippedBits = 0;
                         let mask;
-
-                        if (splitterEntry.type = "custom") {
+                        
+                        if (splitterEntry.type == "custom") {
                             for (let i = 0; i < bitrangeIndex; i++) {
                                 skippedBits += splitterEntry.bitranges[i];
                             }
@@ -691,7 +691,7 @@ function processSegmentsToOutput(segments) {
                             skippedBits = splitterEntry.step * bitrangeIndex;
                             mask = "0x" + bnot(((BigInt(1) << BigInt(splitterEntry.step)) - BigInt(1)) << BigInt(skippedBits)).toString(16).toUpperCase();
                         }
-
+                        
                         output = "op and " + splitterEntry.ref + " " + splitterEntry.ref + " " + mask;
                         break;
                     }
@@ -1247,7 +1247,6 @@ function processSegmentsToOutput(segments) {
     return output
 }
 
-// I WILL NOT FAIL TO HAVE GOOD BITWISE NOT
 function bnot(number) { // please pass a bigint
     let out = BigInt(0);
     let inputString = number.toString(2);
