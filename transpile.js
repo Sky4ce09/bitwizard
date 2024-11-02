@@ -60,9 +60,37 @@ function invertCondition(input) {
     }
 }
 
+function preprocess(input) { // hoists functions
+    let lines = input.split("\n");
+    let openers = [];
+    let closers = [];
+    for (let lineCount = 0; lineCount < lines.length; lineCount++) {
+        if (lines[lineCount].startsWith("fun new")) {
+            openers.push(lineCount);
+        } else if (lines[lineCount].startsWith("fun close")) {
+            closers.push(lineCount);
+        }
+    }
+    if (openers.length != closers.length) return;
+    let out = new Array(...lines);
+    console.log(openers);
+    console.log(closers);
+    let shift = 0;
+    for (let i = openers.length - 1; i >= 0; i--) {
+        console.log(out);
+        out.splice(openers[i] + shift, closers[i] - openers[i] + 1);
+        console.log(out);
+        out.unshift(...lines.slice(openers[i], closers[i] + 1));
+        console.log(out);
+        shift += closers[i] - openers[i] + 1;
+        console.log(shift);
+    }
+    return out;
+}
+
 function transpile(input) {
     reset();
-    let lines = input.split("\n");
+    let lines = preprocess(input);
 
     // cut out anything unwanted
     for (let lineCount = 0; lineCount < lines.length; lineCount++) {
@@ -111,7 +139,7 @@ function transpile(input) {
         for (let i = 0; i < line.length - 1; i++) {
             if (line.substring(i, i + 2) === "  ") {
                 for (let el of stringIndex) {
-                    if (i > el.start && i < el.end) continue; // protected within strings, hopefully...
+                    if (i > el.start && i < el.end) continue;
                 }
                 line = line.substring(0, i) + " " + line.substring(i + 2);
                 for (let el of stringIndex) {
@@ -123,13 +151,13 @@ function transpile(input) {
             }
         }
 
-        //one space to the side for detection
+        // one space to the side for detection
         line += " ";
 
         for (let i = 0; i < line.length; i++) {
             if (line[i] == ' ') {
                 for (let el of stringIndex) {
-                    if (i > el.start && i < el.end) continue; // do not count spaces within strings, hopefully...
+                    if (i > el.start && i < el.end) continue;
                 }
                 // no index complaints? hooray!
                 segments.push(line.substring(0, i));
@@ -1041,7 +1069,7 @@ function processSegmentsToOutput(segments) {
                             output =
                                 "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
-                                escapeConditions + // comes with a new line
+                                escapeConditions +
                                 "\nsensor _Internal_ @unit @flag\n" +
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ notEqual _Internal_ " + flag + "\n" +
                                 tail;
@@ -1063,7 +1091,7 @@ function processSegmentsToOutput(segments) {
                             output =
                                 "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
-                                escapeConditions + // comes with a new line
+                                escapeConditions +
                                 "\nsensor _Internal_ @unit @controlled\n" +
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ equal _Internal_ 1\n" +
                                 "sensor _Internal_ @unit @flag\n" +
@@ -1120,27 +1148,20 @@ function processSegmentsToOutput(segments) {
                     }
                     case "verify": {
                         if (compileTimeVariables.functions.get(segments[2]) == "exists") {
-                            output =
-                                "sensor _Internal1_ @unit @controller\n" +
-                                "sensor _Internal2_ @unit @dead\n" +
-                                "op sub _Internal2_ 1 _Internal2_\n" +
-                                "op strictEqual _Internal3_ _Internal1_ @this\n" +
-                                "op strictEqual _Internal4_ _Internal1_ null\n" +
-                                "op add _Internal1_ _Internal3_ _Internal4_\n" +
-                                "op land _Internal_ _Internal1_ _Internal2_\n" +
-                                "op add " + segments[2] + "_CB @counter 1\n" +
-                                "jump " + segments[2] + " equal _Internal_ 0";
+                            output = "op add " + segments[2] + "_CB @counter 1\n";
                         } else {
-                            output =
-                                "sensor _Internal1_ @unit @controller\n" +
-                                "sensor _Internal2_ @unit @dead\n" +
-                                "op sub _Internal2_ 1 _Internal2_\n" +
-                                "op strictEqual _Internal3_ _Internal1_ @this\n" +
-                                "op strictEqual _Internal4_ _Internal1_ null\n" +
-                                "op add _Internal1_ _Internal3_ _Internal4_\n" +
-                                "op land _Internal_ _Internal1_ _Internal2_\n" +
-                                "jump " + segments[2] + " equal _Internal_ 0";
+                            output = "";
                         }
+                        output += 
+                            "sensor _Internal_ @unit @dead\n" +
+                            "jump " + segments[2] + " equal _Internal_ true\n" +
+                            "sensor _Internal_ @unit @controller\n" +
+                            "op strictEqual _Internal1_ _Internal_ @unit\n" +
+                            "op strictEqual _Internal2_ _Internal_ @this\n" +
+                            "op add _Internal_ _Internal1_ _Internal2_\n" +
+                            "jump " + segments[2] + " equal _Internal_ 0\n" +
+                            "sensor _Internal_ @unit @controlled\n" +
+                            "jump " + segments[2] + " equal _Internal_ @ctrlPlayer";
                         break;
                     }
                     default:
