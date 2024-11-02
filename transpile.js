@@ -1121,7 +1121,7 @@ function processSegmentsToOutput(segments) {
                     case "verify": {
                         if (compileTimeVariables.functions.get(segments[2]) == "exists") {
                             output =
-                                "sensor _Internal1_ @unit @controlled\n" +
+                                "sensor _Internal1_ @unit @controller\n" +
                                 "sensor _Internal2_ @unit @dead\n" +
                                 "op sub _Internal2_ 1 _Internal2_\n" +
                                 "op strictEqual _Internal3_ _Internal1_ @this\n" +
@@ -1132,7 +1132,7 @@ function processSegmentsToOutput(segments) {
                                 "jump " + segments[2] + " equal _Internal_ 0";
                         } else {
                             output =
-                                "sensor _Internal1_ @unit @controlled\n" +
+                                "sensor _Internal1_ @unit @controller\n" +
                                 "sensor _Internal2_ @unit @dead\n" +
                                 "op sub _Internal2_ 1 _Internal2_\n" +
                                 "op strictEqual _Internal3_ _Internal1_ @this\n" +
