@@ -1084,8 +1084,11 @@ function processSegmentsToOutput(segments) {
                                 "_UFLAGGET" + compileTimeVariables.homogenousJumps + "_:\n" +
                                 "ubind " + unitType + "\n" +
                                 escapeConditions +
-                                "sensor _Internal_ @unit @controlled\n" +
-                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ equal _Internal_ 1\n" +
+                                "sensor _Internal1_ @unit @controlled\n" +
+                                "sensor _Internal2_ @unit @controller\n" +
+                                "op notEqual _Internal2_ _Internal2_ @this\n" +
+                                "op add _Internal_ _Internal1_ _Internal2_\n" +
+                                "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ greaterThan _Internal_ 1\n" +
                                 "sensor _Internal_ @unit @flag\n" +
                                 "jump _UFLAGGET" + compileTimeVariables.homogenousJumps + "_ notEqual _Internal_ " + flag +
                                 tail;
