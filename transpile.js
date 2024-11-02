@@ -660,7 +660,7 @@ function processSegmentsToOutput(segments) {
                             }
 
                             output.data = output.data.substring(0, output.data.length - 1);
-                        } else { // algorithmic shift for homogenous bitranges
+                        } else {
                             let step = splitterEntry.step;
                             let shift = segments[4];
                             let mask = "0x" + ((BigInt(1) << BigInt(step)) - BigInt(1)).toString(16).toUpperCase();
