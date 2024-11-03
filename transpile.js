@@ -375,7 +375,7 @@ function algoSplitterAccessCheck(splitter, index) {
 }
 
 function processSegmentsToOutput(segments) {
-    // remove all segments within a comment
+    if (segments[segments.length - 1] == "") { segments.pop(); }
     let removeSegments = false;
     for (let i = 0; i < segments.length; i++) {
         if (removeSegments) {
