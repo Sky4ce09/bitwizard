@@ -60,25 +60,46 @@ function invertCondition(input) {
     }
 }
 
-function preprocess(input) { // hoists functions
+function preprocess(input) { // hoists things
     let lines = input.split("\n");
-    let openers = [];
-    let closers = [];
-    for (let lineCount = 0; lineCount < lines.length; lineCount++) {
-        if (lines[lineCount].startsWith("fun new")) {
-            openers.push(lineCount);
-        } else if (lines[lineCount].startsWith("fun close")) {
-            closers.push(lineCount);
+    let out = new Array(...lines);
+    let functionLines = [];
+    let splitterLines = [];
+
+    let functionOpeners = [];
+    let functionClosers = [];
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.startsWith("fun new")) {
+            functionOpeners.push(i);
+        } else if (line.startsWith("fun close")) {
+            functionClosers.push(i);
         }
     }
-    if (openers.length != closers.length) return;
-    let out = new Array(...lines);
-    let shift = 0;
-    for (let i = openers.length - 1; i >= 0; i--) {
-        out.splice(openers[i] + shift, closers[i] - openers[i] + 1);
-        out.unshift(...lines.slice(openers[i], closers[i] + 1));
-        shift += closers[i] - openers[i] + 1;
+
+    if (functionOpeners.length != functionClosers.length) return lines;
+
+    for (let i = functionOpeners.length - 1; i >= 0; i--) {
+        functionLines.push(...out.splice(functionOpeners[i], functionClosers[i] - functionOpeners[i] + 1));
     }
+
+    lines = [...functionLines];
+    lines.push(...out);
+    out = new Array(...lines);
+    
+    let splitters = [];
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.startsWith("spl new")) {
+            splitters.push(i);
+        }
+    }
+
+    for (let i = splitters.length - 1; i >= 0; i--) {
+        splitterLines.push(...out.splice(splitters[i], 1));
+    }
+
+    out.unshift(...splitterLines);
     return out;
 }
 
