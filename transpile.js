@@ -375,7 +375,7 @@ function algoSplitterAccessCheck(splitter, index) {
 }
 
 function processSegmentsToOutput(segments) {
-    if (segments[segments.length - 1] == "") { segments.pop(); }
+    while (segments[segments.length - 1] == "") { segments.pop(); }
     let removeSegments = false;
     for (let i = 0; i < segments.length; i++) {
         if (removeSegments) {
@@ -546,7 +546,7 @@ function processSegmentsToOutput(segments) {
                                 type: "algorithmic",
                                 step: segments[4],
                                 bitranges: null,
-                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(53 / segments[4])),
+                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(64 / segments[4])),
                                 labels: labels
                             });
                         } else {
