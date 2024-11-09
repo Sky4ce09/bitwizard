@@ -546,7 +546,7 @@ function processSegmentsToOutput(segments) {
                                 type: "algorithmic",
                                 step: segments[4],
                                 bitranges: null,
-                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(64 / segments[4])),
+                                restrictor: (segments[5] == "*" ? segments[6] : Math.floor(52 / segments[4])),
                                 labels: labels
                             });
                         } else {
