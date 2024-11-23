@@ -1021,9 +1021,13 @@ function processSegmentsToOutput(segments) {
                     }
                     case "have":
                     case "call": {
+                        let appendage = "always";
+                        if (segments.length > 3) {
+                            appendage = lookupCondition(segments[3]) + " " + segments[4] + " " + segments[5];
+                        }
                         output = {
                             header: "",
-                            contents: "op add _" + segments[2] + "CB_ @counter 1\njump " + segments[2] + " always",
+                            contents: "op add _" + segments[2] + "CB_ @counter 1\njump " + segments[2] + " " + appendage,
                             footer: "",
                             data: "",
                             unchangeable: false
@@ -1118,8 +1122,20 @@ function processSegmentsToOutput(segments) {
                         break;
                     }
                     case "await": {
-                        if (lookupCondition(segments[2]) != "invalid") {
+                        let unitRef = segments[2];
+                        if (lookupCondition(segments[3]) != "invalid") {
                             let oppositeCondition = invertCondition(lookupCondition(segments[2]));
+                            let flag = segments[4];
+                            output =
+                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n";
+                            for (let i = 5; i < segments.length; i++) {
+                                output +=
+                                    "op add _" + segments[i] + "CB_ @counter 1\njump " + segments[i] + " always\n";
+                            }
+                            output +=
+                                "sensor _Internal_ " + unitRef + " @flag\n" +
+                                "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ " + oppositeCondition + " " + "_Internal_ " + flag;
+                        } else {
                             let flag = segments[3];
                             output =
                                 "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n";
@@ -1128,56 +1144,47 @@ function processSegmentsToOutput(segments) {
                                     "op add _" + segments[i] + "CB_ @counter 1\njump " + segments[i] + " always\n";
                             }
                             output +=
-                                "sensor _Internal_ @unit @flag\n" +
-                                "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ " + oppositeCondition + " " + "_Internal_ " + flag;
-                        } else {
-                            let flag = segments[2];
-                            output =
-                                "_UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_:\n";
-                            for (let i = 3; i < segments.length; i++) {
-                                output +=
-                                    "op add _" + segments[i] + "CB_ @counter 1\njump " + segments[i] + " always\n";
-                            }
-                            output +=
-                                "sensor _Internal_ @unit @flag\n" +
+                                "sensor _Internal_ " + unitRef + " @flag\n" +
                                 "jump _UFLAGAWAIT" + compileTimeVariables.homogenousJumps + "_ notEqual " + "_Internal_ " + flag;
                         }
                         compileTimeVariables.homogenousJumps++;
                         break;
                     }
                     case "test": {
-                        if (segments.length > 4) { // uses a default condition if the condition parameter hasn't been added yet
-                            let condition = lookupCondition(segments[2]);
+                        let unitRef = segments[2];
+                        if (segments.length > 5) { // uses a default condition if the condition parameter hasn't been added yet
+                            let condition = lookupCondition(segments[3]);
+                            let flag = segments[4];
+                            let output = segments[5];
+                            output =
+                                "sensor _Internal_ " + unitRef + " @flag\n" +
+                                "op " + condition + " " + output + " " + flag + " _Internal_";
+                        } else {
                             let flag = segments[3];
                             let output = segments[4];
                             output =
-                                "sensor _Internal_ @unit @flag\n" +
-                                "op " + condition + " " + output + " " + flag + " _Internal_";
-                        } else {
-                            let flag = segments[2];
-                            let output = segments[3];
-                            output =
-                                "sensor _Internal_ @unit @flag\n" +
+                                "sensor _Internal_ " + unitRef + " @flag\n" +
                                 "op equal " + output + " " + flag + " _Internal_";
                         }
                         break;
                     }
                     case "verify": {
-                        if (compileTimeVariables.functions.get(segments[2]) == "exists") {
-                            output = "op add " + segments[2] + "_CB @counter 1\n";
+                        let unitRef = segments[2];
+                        if (compileTimeVariables.functions.get(segments[3]) == "exists") {
+                            output = "op add " + segments[3] + "_CB @counter 1\n";
                         } else {
                             output = "";
                         }
                         output += 
-                            "sensor _Internal_ @unit @dead\n" +
-                            "jump " + segments[2] + " equal _Internal_ true\n" +
-                            "sensor _Internal_ @unit @controller\n" +
-                            "op strictEqual _Internal1_ _Internal_ @unit\n" +
+                            "sensor _Internal_ " + unitRef + " @dead\n" +
+                            "jump " + segments[3] + " equal _Internal_ true\n" +
+                            "sensor _Internal_ " + unitRef + " @controller\n" +
+                            "op strictEqual _Internal1_ _Internal_ " + unitRef + "\n" +
                             "op strictEqual _Internal2_ _Internal_ @this\n" +
                             "op add _Internal_ _Internal1_ _Internal2_\n" +
-                            "jump " + segments[2] + " equal _Internal_ 0\n" +
-                            "sensor _Internal_ @unit @controlled\n" +
-                            "jump " + segments[2] + " equal _Internal_ @ctrlPlayer";
+                            "jump " + segments[3] + " equal _Internal_ 0\n" +
+                            "sensor _Internal_ " + unitRef + " @controlled\n" +
+                            "jump " + segments[3] + " equal _Internal_ @ctrlPlayer";
                         break;
                     }
                     default:

@@ -182,9 +182,9 @@
                     <tr>
                         <td></td>
                         <td>have / call</td>
-                        <td>function name</td>
-                        <td>have fun™ / call a function</td>
-                        <td>fun have ConstructingAdditionalPylons</td>
+                        <td>function name, (condition, comparand 1, comparand 2)</td>
+                        <td>have fun™ / call a function, optionally when a given condition is met</td>
+                        <td>fun have ConstructingAdditionalPylons >= resources enough</td>
                     </tr>
                     <tr>
                         <td>uflag</td>
@@ -210,23 +210,23 @@
                     <tr>
                         <td></td>
                         <td>await</td>
-                        <td>(condition), flag value, (intermediary function calls...)</td>
+                        <td>unit reference, (condition), flag value, (intermediary function calls...)</td>
                         <td>causes the processor to loop until @unit's flag meets the specified condition ("equal" by default)</td>
-                        <td>set signal 6942069420<br />uflag signal<br />uflag await not signal<br /># this is how to do the network</td>
+                        <td>set signal 6942069420<br />uflag signal<br />uflag await @unit not signal<br /># this is how to do the network</td>
                     </tr>
                     <tr>
                         <td></td>
                         <td>test</td>
-                        <td>condition, output variable</td>
+                        <td>unit reference, condition, output variable</td>
                         <td>test's @unit's flag for the specified condition</td>
-                        <td>uflag test == 0 lol</td>
+                        <td>uflag test @unit == 0 lol</td>
                     </tr>
                     <tr>
                         <td></td>
                         <td>verify</td>
-                        <td>jump target OR function name</td>
+                        <td>unit reference, jump target OR function name</td>
                         <td>will (call / jump to) the specified target if @unit is<br />A. dead <br />B. controlled by another processor</td>
-                        <td>myLabel:<br />uflag get any @flare 0<br />wait 5s<br />uflag verify myLabel</td>
+                        <td>myLabel:<br />uflag get any @flare 0<br />wait 5s<br />uflag verify @unit myLabel</td>
                     </tr>
                     <tr>
                         <td>log2</td>
