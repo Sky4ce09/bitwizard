@@ -75,11 +75,25 @@
                         <td>incon <br />spl of value SomeRandomSplit 0 #output is back to default 1 line</td>
                     </tr>
                     <tr>
+                        <td>tickbarrier (tickbar, tick)</td>
+                        <td></td>
+                        <td></td>
+                        <td>halts execution until the current tick elapses</td>
+                        <td>tickbar<br >op add ticks ticks 1<br /># works best with fast processors</td>
+                    </tr>
+                    <tr>
                         <td>expect</td>
                         <td></td>
                         <td>building links</td>
                         <td>prevents the processor from finishing initialization if the provided links aren't valid</td>
                         <td>expect switch1 display1 message1</td>
+                    </tr>
+                    <tr>
+                        <td>memorylabel (memlabel)</td>
+                        <td></td>
+                        <td>memory block reference, labels...</td>
+                        <td>allows giving memory slots names without impacting performance</td>
+                        <td>memlabel vitaminContents 0:A 1:B12 2:C<br />read vitaminA vitaminContents A<br />read vitaminC vitaminContents C</td>
                     </tr>
                     <tr>
                         <td>spl*</td>
@@ -118,42 +132,42 @@
                     </tr>
                     <tr>
                         <td></td>
-                        <td>obtainf*</td>
+                        <td>obtainf* (of)</td>
                         <td>output variable, splitter reference, constant bitrange index</td>
                         <td>get the range of bits of a splitter's target variable at a constant index</td>
                         <td>spl obtainf a Bytes 1 #gets the 2nd range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td>obtaind</td>
+                        <td>obtaind (od)</td>
                         <td>output variable, splitter reference, bitrange index</td>
                         <td>get the range of bits of a splitter's target variable at an index that may be determined in runtime<br />this generates a lot more code than obtainf so don't use it when you don't need to define the bitrange index in runtime</td>
                         <td>spl obtaind a Bytes x #gets the x-th range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td>clearf</td>
+                        <td>clearf (cf)</td>
                         <td>splitter reference, constant bitrange index</td>
                         <td>clear the range of bits of a splitter's target variable at a constant index</td>
                         <td>spl clearf Bytes 3 #clears the 4th range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td>cleard</td>
+                        <td>cleard (cd)</td>
                         <td>splitter reference, bitrange index</td>
                         <td>clear the range of bits of a splitter's target variable at an index that may be determined in runtime<br />this generates a lot more code than clearf so don't use it when you don't need to define the bitrange index in runtime</td>
                         <td>spl cleard Bytes x #clears the x-th range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td>writef*</td>
+                        <td>writef* (wf)</td>
                         <td>input, splitter reference, constant bitrange index</td>
                         <td>write to the range of bits of a splitter's target variable at a constant index</td>
                         <td>spl writef 0b10100101 Bytes 3 #writes a number to the 4th range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>
-                        <td>writed*</td>
+                        <td>writed* (wd)</td>
                         <td>input, splitter reference, bitrange index</td>
                         <td>write to the range of bits of a splitter's target variable at an index that may be determined in runtime<br />this generates a lot more code than writef so don't use it when you don't need to define the bitrange index in runtime</td>
                         <td>spl writed 0xFF Bytes x #writes a number to the x-th range of bits in 'Bytes'</td>

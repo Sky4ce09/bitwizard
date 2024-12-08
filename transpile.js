@@ -333,6 +333,7 @@ function reset() {
         linesWithinFunction: false,
         toggleConsistentLineCounts: false,
         homogenousJumps: 0,
+        tickBarriers: 0,
         recentTimers: [],
         recentLoops: [],
         recentPointerArrays: [],
@@ -440,6 +441,15 @@ function processSegmentsToOutput(segments) {
                 if (segments.length == 2) {
                     output = segments[0] + " " + segments[1] + " always"
                 }
+                break;
+            }
+            case "tick":
+            case "tickbar":
+            case "tickbarrier": {
+                output = "set _Internal_ @tick\n" +
+                "_TICKBARRIER" + compileTimeVariables.tickBarriers + "_:\n" +
+                "jump _TICKBARRIER" + compileTimeVariables.tickBarriers + "_ equal @tick _Internal_";
+                compileTimeVariables.tickBarriers++;
                 break;
             }
             case "drawf":
