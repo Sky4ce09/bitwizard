@@ -150,22 +150,6 @@ function transpile(input) {
             }
         }
 
-        // remove double spaces
-        for (let i = 0; i < line.length - 1; i++) {
-            if (line.substring(i, i + 2) === "  ") {
-                for (let el of stringIndex) {
-                    if (i > el.start && i < el.end) continue;
-                }
-                line = line.substring(0, i) + " " + line.substring(i + 2);
-                for (let el of stringIndex) {
-                    if (el.start < i) return;
-                    el.start -= 1;
-                    el.end -= 1;
-                }
-                i--;
-            }
-        }
-
         // one space to the side for detection
         line += " ";
 

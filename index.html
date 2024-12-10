@@ -9,7 +9,6 @@
 </head>
 <body style="background-color: black">
     <a class="link" href="https://sky4ce09.github.io/bitwizard/spriting/sprites.html">Janky spriting environment</a><br />
-    <input type="button" value="Tooltips enabled: false" id="tooltip" onclick="tooltipsEnabled = tooltipsEnabled == false ? true : false; document.getElementById(`outputfield`).value = transpile(document.getElementById(`inputfield`).value); document.getElementById('tooltip').value = 'Tooltips enabled: ' + tooltipsEnabled" />
     <input type="button" value="Debugging info enabled: false" id="debug" onclick="debugEnabled = debugEnabled == false ? true : false; document.getElementById(`outputfield`).value = transpile(document.getElementById(`inputfield`).value); document.getElementById('debug').value = 'Debugging info enabled: ' + debugEnabled" />
     <br />
     <textarea style="background-color: black; color: white" cols=80 rows=60 id="inputfield" placeholder="Input" oninput="document.getElementById(`outputfield`).value = transpile(document.getElementById(`inputfield`).value)"></textarea>
