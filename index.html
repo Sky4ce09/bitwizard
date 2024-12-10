@@ -167,10 +167,24 @@
                     </tr>
                     <tr>
                         <td></td>
+                        <td>writef-* (wf-)</td>
+                        <td>input, splitter reference, constant bitrange index</td>
+                        <td>write to the range of bits of a splitter's target variable at a constant index<br />"reduced write", does not spend processing power clearing the destination before writing to it</td>
+                        <td>spl wf- 0b10100101 Bytes 3 #writes a number to the 4th range of bits in 'Bytes'</td>
+                    </tr>
+                    <tr>
+                        <td></td>
                         <td>writed* (wd)</td>
                         <td>input, splitter reference, bitrange index</td>
                         <td>write to the range of bits of a splitter's target variable at an index that may be determined in runtime<br />this generates a lot more code than writef so don't use it when you don't need to define the bitrange index in runtime</td>
                         <td>spl writed 0xFF Bytes x #writes a number to the x-th range of bits in 'Bytes'</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>writed-* (wd-)</td>
+                        <td>input, splitter reference, bitrange index</td>
+                        <td>write to the range of bits of a splitter's target variable at an index that may be determined in runtime<br />this generates a lot more code than writef so don't use it when you don't need to define the bitrange index in runtime<br />"reduced write", does not spend processing power clearing the destination before writing to it</td>
+                        <td>spl wd- 0xFF Bytes x #writes a number to the x-th range of bits in 'Bytes'</td>
                     </tr>
                     <tr>
                         <td></td>

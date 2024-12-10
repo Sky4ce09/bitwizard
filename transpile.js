@@ -432,7 +432,7 @@ function processSegmentsToOutput(segments) {
                 console.log(compileTimeVariables);
                 output = {
                     header: "",
-                    contents: "\# DEBUG MARK",
+                    contents: "\# DEBUG MARKER",
                     footer: "",
                     data: ""
                 };
@@ -829,6 +829,37 @@ function processSegmentsToOutput(segments) {
                         }
                         break;
                     }
+                    case "writef-":
+                    case "wf-": {
+                        let inputValue = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        let bitrangeIndex = Number.isNaN(Number(segments[4])) ? splitterEntry.labels.get(segments[4]) * 1 : segments[4] * 1;
+                        let skippedBits = 0;
+                        let mask;
+                        if (splitterEntry.type == "custom") {
+                            for (let i = 0; i < bitrangeIndex; i++) {
+                                skippedBits += splitterEntry.bitranges[i];
+                            }
+                            mask = "0x" + bnot(((BigInt(1) << BigInt(splitterEntry.bitranges[bitrangeIndex])) - BigInt(1)) << BigInt(skippedBits)).toString(16).toUpperCase();
+                        } else {
+                            if (!algoSplitterAccessCheck(splitterEntry, bitrangeIndex)) {
+                                output = "# You shall only access " + splitterEntry.restrictor * splitterEntry.step + " bits from this splitter.";
+                                break;
+                            }
+                            skippedBits = splitterEntry.step * bitrangeIndex;
+                            mask = "0x" + bnot(((BigInt(1) << BigInt(splitterEntry.step)) - BigInt(1)) << BigInt(skippedBits)).toString(16).toUpperCase();
+                        }
+                        if (Number.isNaN(Number(inputValue))) {
+                            output =
+                                "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
+                                "op or " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_";
+                        } else {
+                            inputValue = "0x" + (BigInt(inputValue) << BigInt(skippedBits)).toString(16).toUpperCase();
+                            output =
+                                "op or " + splitterEntry.ref + " " + splitterEntry.ref + " " + inputValue;
+                        }
+                        break;
+                    }
                     case "writed":
                     case "wd": {
                         let inputValue = segments[2];
@@ -854,7 +885,7 @@ function processSegmentsToOutput(segments) {
                             output.data +=
                                 "_SPL" + segments[3] + "W_:\n" +
                                 "op mul _Internal_ " + bitrangeIndex + " 4\n" +
-                                "op or @counter @counter _Internal_\n";
+                                "op add @counter @counter _Internal_\n";
 
                             for (let i = 0; i < splitterEntry.bitranges.length; i++) {
                                 let bitrange = splitterEntry.bitranges[i];
@@ -877,6 +908,60 @@ function processSegmentsToOutput(segments) {
                                 ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op shl _Internal2_ " + mask + " _Internal1_\n" : "op shl _Internal2_ " + mask + " " + shift + "\n") +
                                 "op not _Internal2_ _Internal2_\n" +
                                 "op and " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal2_\n";
+                            if (compileTimeVariables.toggleConsistentLineCounts || shift != 0) {
+                                output +=
+                                    ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op shl _Internal2_ " + inputValue + " _Internal1_\n" : "op shl _Internal2_ " + inputValue + " " + shift + "\n") +
+                                    "op or " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal2_";
+                            } else {
+                                output +=
+                                    "op or " + splitterEntry.ref + " " + splitterEntry.ref + " " + inputValue;
+                            }
+                        }
+                        break;
+                    }
+                    case "writed-":
+                    case "wd-": {
+                        console.log("ok");
+                        let inputValue = segments[2];
+                        let splitterEntry = compileTimeVariables.splitters.get(segments[3]);
+                        if (splitterEntry.type == "custom") {
+                            let bitrangeIndex = segments[4];
+                            let skippedBits = 0;
+
+                            output = {
+                                header: "",
+                                contents:
+                                    "op add _SPL" + segments[3] + "CB_ @counter 1\n" +
+                                    "jump _SPL" + segments[3] + "W_ always",
+                                footer: "",
+                                data: ""
+                            }
+
+                            if (splitterEntry.writeFunctionCreated) break;
+
+                            splitterEntry.writeFunctionCreated = true;
+                            compileTimeVariables.functionCount++;
+
+                            output.data +=
+                                "_SPL" + segments[3] + "W_:\n" +
+                                "op mul _Internal_ " + bitrangeIndex + " 3\n" +
+                                "op add @counter @counter _Internal_\n";
+
+                            for (let i = 0; i < splitterEntry.bitranges.length; i++) {
+                                let bitrange = splitterEntry.bitranges[i];
+                                let mask = "0x" + bnot(((BigInt(1) << BigInt(bitrange)) - BigInt(1)) << BigInt(skippedBits)).toString(16).toUpperCase();
+                                output.data +=
+                                    "op shl _Internal_ " + inputValue + " " + skippedBits + "\n" +
+                                    "op or " + splitterEntry.ref + " " + splitterEntry.ref + " _Internal_\n" +
+                                    "set @counter _SPL" + segments[3] + "CB_\n";
+                                skippedBits += bitrange;
+                            }
+
+                            output.data = output.data.substring(0, output.data.length - 1);
+                        } else { // algorithmic shift for homogenous bitranges
+                            let step = splitterEntry.step;
+                            let shift = segments[4];
+                            output = ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op mul _Internal1_ " + step + " " + shift + "\n" : "");
                             if (compileTimeVariables.toggleConsistentLineCounts || shift != 0) {
                                 output +=
                                     ((step != 1 || compileTimeVariables.toggleConsistentLineCounts) ? "op shl _Internal2_ " + inputValue + " _Internal1_\n" : "op shl _Internal2_ " + inputValue + " " + shift + "\n") +
